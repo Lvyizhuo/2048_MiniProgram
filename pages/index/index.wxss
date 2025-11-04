@@ -1,0 +1,600 @@
+/* 容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #FAF8EF;
+  padding: 20rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 顶部信息区 */
+.header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 30rpx;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.header-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.header-buttons-right {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.title {
+  font-size: 60rpx;
+  font-weight: bold;
+  color: #776E65;
+}
+
+.scores {
+  display: flex;
+  gap: 20rpx;
+}
+
+.btn-header {
+  width: 90rpx;
+  height: 90rpx;
+  background-color: #8F7A66;
+  border-radius: 12rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #FFFFFF;
+}
+
+.btn-header:active {
+  background-color: #7A6B5A;
+}
+
+.btn-header .btn-icon {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.btn-undo {
+  background-color: #BBADA0;
+}
+
+.btn-eliminate {
+  background-color: #BBADA0;
+}
+
+.btn-menu {
+  background-color: #BBADA0;
+}
+
+/* 特殊按钮样式（消除和撤销）：白色边框、方块8颜色背景、跳动动画 */
+.btn-special {
+  background-color: #F2B179 !important;
+  border: 3rpx solid #FFFFFF;
+  animation: buttonBounce 1.5s ease-in-out infinite;
+}
+
+.btn-special.active {
+  background-color: #F59563 !important;
+  box-shadow: 0 0 20rpx rgba(242, 177, 121, 0.5);
+}
+
+/* 按钮跳动动画 */
+@keyframes buttonBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.score-item {
+  background-color: #BBADA0;
+  border-radius: 8rpx;
+  padding: 10rpx 20rpx;
+  text-align: center;
+  min-width: 120rpx;
+}
+
+.score-label {
+  font-size: 24rpx;
+  color: #EEE4DA;
+  margin-bottom: 5rpx;
+}
+
+.score-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #FFFFFF;
+}
+
+/* 游戏棋盘 */
+.game-board {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20rpx 0 30rpx 0;
+  min-height: 0; /* 确保flex子元素可以收缩 */
+}
+
+.grid-container {
+  position: relative;
+  width: 680rpx;
+  height: 680rpx;
+}
+
+/* 背景网格 */
+.grid-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: #BBADA0;
+  border-radius: 12rpx;
+  padding: 12rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-row {
+  display: flex;
+  flex: 1;
+  margin-bottom: 12rpx;
+}
+
+.grid-row:last-child {
+  margin-bottom: 0;
+}
+
+.grid-cell {
+  flex: 1;
+  background-color: rgba(238, 228, 218, 0.35);
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+
+.grid-cell:last-child {
+  margin-right: 0;
+}
+
+/* 方块容器 */
+.tiles-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding: 12rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-wrapper {
+  display: flex;
+  flex: 1;
+  margin-bottom: 12rpx;
+}
+
+.tile-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+/* 方块样式 */
+.tile {
+  flex: 1;
+  margin-right: 12rpx;
+  border-radius: 8rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 56rpx;
+  font-weight: bold;
+  position: relative;
+  /* 优化过渡效果：使用更流畅的缓动函数 */
+  transition: transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.tile:last-child {
+  margin-right: 0;
+}
+
+.tile-empty {
+  opacity: 0;
+}
+
+/* 隐藏新方块（避免闪烁） */
+.tile-hidden {
+  opacity: 0 !important;
+  visibility: hidden;
+}
+
+/* 消除模式下可选择的方块样式 */
+.tile-selectable {
+  cursor: pointer;
+  box-shadow: 0 0 20rpx rgba(255, 105, 180, 0.6);
+  border: 3rpx solid #FF69B4;
+  animation: tilePulse 1s ease-in-out infinite;
+}
+
+@keyframes tilePulse {
+  0%, 100% {
+    box-shadow: 0 0 20rpx rgba(255, 105, 180, 0.6);
+    border-color: #FF69B4;
+  }
+  50% {
+    box-shadow: 0 0 30rpx rgba(255, 105, 180, 0.9);
+    border-color: #FF1493;
+  }
+}
+
+/* 数字颜色方案 */
+.tile-2 {
+  background-color: #EEE4DA;
+  color: #776E65;
+  font-size: 56rpx;
+}
+
+.tile-4 {
+  background-color: #EDE0C8;
+  color: #776E65;
+  font-size: 56rpx;
+}
+
+.tile-8 {
+  background-color: #F2B179;
+  color: #F9F6F2;
+  font-size: 56rpx;
+}
+
+.tile-16 {
+  background-color: #F59563;
+  color: #F9F6F2;
+  font-size: 56rpx;
+}
+
+.tile-32 {
+  background-color: #F67C5F;
+  color: #F9F6F2;
+  font-size: 56rpx;
+}
+
+.tile-64 {
+  background-color: #F65E3B;
+  color: #F9F6F2;
+  font-size: 56rpx;
+}
+
+.tile-128 {
+  background-color: #EDCF72;
+  color: #F9F6F2;
+  font-size: 52rpx;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
+}
+
+.tile-256 {
+  background-color: #EDCC61;
+  color: #F9F6F2;
+  font-size: 52rpx;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
+}
+
+.tile-512 {
+  background-color: #EDC850;
+  color: #F9F6F2;
+  font-size: 52rpx;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
+}
+
+.tile-1024 {
+  background-color: #EDC53F;
+  color: #F9F6F2;
+  font-size: 48rpx;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
+}
+
+.tile-2048 {
+  background-color: #EDC22E;
+  color: #F9F6F2;
+  font-size: 48rpx;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
+}
+
+/* 更大的数字 */
+.tile-4096,
+.tile-8192 {
+  background-color: #3C3A32;
+  color: #F9F6F2;
+  font-size: 44rpx;
+}
+
+/* ==================== 动画效果系统 ==================== */
+
+/* 
+ * 新方块生成动画：从小到大缩放
+ * 时长：250ms
+ * 缓动：cubic-bezier(0.25, 0.46, 0.45, 0.94) - 平滑缩放
+ * 特点：从scale(0)平滑放大到scale(1)，简洁自然
+ */
+.tile-new {
+  animation: tileNew 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes tileNew {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 
+ * 合并动画：目标方块快速放大再恢复（脉冲效果）
+ * 时长：200ms（缩放到1.15倍100ms，恢复100ms）
+ * 缓动：前半段ease-out，后半段ease-in-out
+ * 特点：明显的脉冲反馈，增强合并的视觉冲击
+ */
+.tile-merged {
+  animation: tileMerged 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 10; /* 确保合并方块在最上层 */
+}
+
+@keyframes tileMerged {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 
+ * 被合并方块：直接消失，无动画
+ * 特点：立即隐藏，不干扰主动画
+ */
+.tile-merge-disappear {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 5; /* 在合并目标方块下方 */
+}
+
+/* Banner广告位 */
+.ad-banner {
+  width: 100%;
+  height: 200rpx;
+  background-color: rgba(187, 173, 160, 0.3);
+  border-radius: 8rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #BBADA0;
+  font-size: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 弹窗样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease-out, visibility 200ms ease-out;
+}
+
+.modal-show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  background-color: #FAF8EF;
+  border-radius: 16rpx;
+  padding: 60rpx 40rpx;
+  width: 600rpx;
+  box-sizing: border-box;
+  text-align: center;
+  z-index: 1001;
+}
+
+.modal-title {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #776E65;
+  margin-bottom: 30rpx;
+}
+
+.modal-title-win {
+  color: #EDC22E;
+  font-size: 56rpx;
+}
+
+.modal-text {
+  font-size: 32rpx;
+  color: #776E65;
+  margin-bottom: 20rpx;
+}
+
+.modal-score {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #776E65;
+  margin-bottom: 40rpx;
+}
+
+.modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.modal-btn {
+  padding: 24rpx;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  border: none;
+  width: 100%;
+}
+
+.btn-primary {
+  background-color: #8F7A66;
+  color: #F9F6F2;
+}
+
+.btn-primary:active {
+  background-color: #7A6B5A;
+}
+
+.btn-secondary {
+  background-color: #BBADA0;
+  color: #FFFFFF;
+}
+
+.btn-secondary:active {
+  background-color: #A59A8F;
+}
+
+/* 菜单弹窗样式 */
+.menu-content {
+  padding: 40rpx;
+}
+
+.menu-list {
+  margin: 40rpx 0;
+}
+
+.menu-item {
+  padding: 30rpx 20rpx;
+  background-color: #BBADA0;
+  border-radius: 8rpx;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+
+.menu-item:last-child {
+  margin-bottom: 0;
+}
+
+.menu-item:active {
+  background-color: #A59A8F;
+}
+
+.menu-text {
+  font-size: 32rpx;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* 教程弹窗样式 */
+.tutorial-content {
+  padding: 40rpx;
+}
+
+.tutorial-image {
+  width: 100%;
+  height: 600rpx;
+  margin: 30rpx 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tutorial-image image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8rpx;
+}
+
+.tutorial-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 15rpx;
+  margin: 30rpx 0;
+}
+
+.indicator-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background-color: #BBADA0;
+}
+
+.indicator-dot.active {
+  background-color: #8F7A66;
+}
+
+.tutorial-buttons {
+  display: flex;
+  gap: 20rpx;
+  justify-content: center;
+}
+
+.tutorial-btn {
+  flex: 1;
+}
+
+/* 消除模式提示 */
+.eliminate-tip {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #FFFFFF;
+  padding: 30rpx 50rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+  pointer-events: none;
+}
+
+.eliminate-tip.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.eliminate-tip text {
+  display: block;
+  text-align: center;
+}
+

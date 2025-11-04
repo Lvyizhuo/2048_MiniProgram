@@ -1,0 +1,38 @@
+<view class="container">
+  <!-- 顶部Logo和标题 -->
+  <view class="header">
+    <view class="game-title">
+      <text class="title-text">新2048</text>
+    </view>
+    <view class="logo-container">
+      <image class="logo-image" src="/src/pic/rangking.png" mode="aspectFit"></image>
+    </view>
+  </view>
+
+  <!-- 主要内容区 -->
+  <view class="main-content">
+    <!-- 最高分显示 -->
+    <view class="best-score" wx:if="{{bestScore > 0}}">
+      <view class="best-score-label">最高分</view>
+      <view class="best-score-value">{{bestScore}}</view>
+    </view>
+
+    <!-- 主要按钮 -->
+    <view class="button-group">
+      <view class="main-button btn-start" bindtap="startNewGame">
+        <text class="button-text">新2048</text>
+      </view>
+      <view class="main-button btn-challenge" bindtap="startChallenge">
+        <text class="button-text">发起挑战</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部链接 -->
+  <view class="footer-links">
+    <text class="link-text" bindtap="showPrivacy">隐私政策</text>
+    <text class="link-separator">|</text>
+    <text class="link-text" bindtap="showAgreement">用户协议</text>
+  </view>
+</view>
+
