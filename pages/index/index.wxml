@@ -20,12 +20,18 @@
     </view>
 
     <view class="header-bottom">
-      <view class="header-buttons-right">
-        <view class="btn-header btn-undo" bindtap="undo" bindlongpress="showUndoTip">
-          <image class="btn-icon" src="/src/pic/withdraw.png" mode="aspectFit"></image>
+      <view class="header-buttons-left">
+        <view class="btn-header btn-tool btn-undo" bindtap="undo" bindlongpress="showUndoTip">
+          <text class="btn-tool-text">撤销</text>
+          <view class="btn-badge {{undoCredits > 0 ? 'available' : 'need-ad'}}">
+            <text class="badge-text">{{undoCredits > 0 ? undoCredits : 'AD'}}</text>
+          </view>
         </view>
-        <view class="btn-header btn-eliminate {{eliminateMode ? 'btn-special active' : ''}}" bindtap="toggleEliminateMode" bindlongpress="showEliminateTip">
-          <image class="btn-icon" src="/src/pic/eliminate.png" mode="aspectFit"></image>
+        <view class="btn-header btn-tool btn-eliminate {{eliminateMode ? 'btn-special active' : ''}}" bindtap="toggleEliminateMode" bindlongpress="showEliminateTip">
+          <text class="btn-tool-text">消除</text>
+          <view class="btn-badge {{eliminateCredits > 0 ? 'available' : 'need-ad'}}">
+            <text class="badge-text">{{eliminateCredits > 0 ? eliminateCredits : 'AD'}}</text>
+          </view>
         </view>
       </view>
 
@@ -110,33 +116,50 @@
     <view class="modal-content menu-content">
       <view class="modal-title">菜单</view>
       <scroll-view class="menu-list" scroll-y="true">
-        <view class="menu-item" bindtap="continueGameFromMenu">
-          <text class="menu-icon">▶</text>
-          <text class="menu-text">继续游戏</text>
-        </view>
-        <view class="menu-item" bindtap="newGame">
-          <text class="menu-icon">↻</text>
-          <text class="menu-text">新游戏</text>
-        </view>
-        <view class="menu-item" bindtap="toggleSound">
-          <text class="menu-icon {{soundEnabled ? '' : 'muted'}}">♬</text>
-          <text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text>
-        </view>
-        <view class="menu-item" bindtap="toggleVibration">
-          <text class="menu-icon {{vibrationEnabled ? '' : 'muted'}}">≈</text>
-          <text class="menu-text">{{vibrationEnabled ? '关闭震动' : '开启震动'}}</text>
-        </view>
-        <view class="menu-item" bindtap="showTutorialFromMenu">
-          <text class="menu-icon">?</text>
-          <text class="menu-text">新手教程</text>
-        </view>
-        <view class="menu-item" bindtap="goToMain">
-          <text class="menu-icon">⌂</text>
-          <text class="menu-text">返回主页</text>
+        <view class="menu-grid">
+          <view class="menu-item" bindtap="continueGameFromMenu">
+            <view class="menu-icon-wrap"><text class="menu-icon">▶</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">继续游戏</text>
+            </view>
+          </view>
+          <view class="menu-item" bindtap="newGame">
+            <view class="menu-icon-wrap"><text class="menu-icon">↻</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">新游戏</text>
+            </view>
+          </view>
+          <view class="menu-item" bindtap="toggleSound">
+            <view class="menu-icon-wrap"><text class="menu-icon {{soundEnabled ? '' : 'muted'}}">♬</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text>
+            </view>
+          </view>
+          <view class="menu-item" bindtap="toggleVibration">
+            <view class="menu-icon-wrap"><text class="menu-icon {{vibrationEnabled ? '' : 'muted'}}">≈</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">{{vibrationEnabled ? '关闭震动' : '开启震动'}}</text>
+            </view>
+          </view>
+          <view class="menu-item" bindtap="showTutorialFromMenu">
+            <view class="menu-icon-wrap"><text class="menu-icon">?</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">新手教程</text>
+            </view>
+          </view>
+          <view class="menu-item" bindtap="goToMain">
+            <view class="menu-icon-wrap"><text class="menu-icon">⌂</text></view>
+            <view class="menu-item-text">
+              <text class="menu-text">返回主页</text>
+            </view>
+          </view>
         </view>
       </scroll-view>
-      <button class="modal-btn btn-secondary" open-type="share">分享给好友</button>
-      <button class="modal-btn btn-secondary" bindtap="closeMenu">关闭</button>
+
+      <view class="menu-footer">
+        <button class="menu-footer-btn menu-footer-back" bindtap="closeMenu">返回</button>
+        <button class="menu-footer-btn menu-footer-share" open-type="share">分享</button>
+      </view>
     </view>
   </view>
 

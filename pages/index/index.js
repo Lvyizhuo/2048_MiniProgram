@@ -10,6 +10,8 @@ Page({
     scorePlus: null,
     gameOver: false,
     navSpacerPx: 0,
+    undoCredits: 1,
+    eliminateCredits: 1,
     showGameOverModal: false,
     gameOverModalClosing: false,
     showWinModal: false,
@@ -38,6 +40,8 @@ Page({
   scorePopTimer: null,
   scorePlusTimer: null,
   eliminateTipTimer: null,
+  toolRewardedAd: null,
+  toolAdLoading: false,
 
   onLoad() {
     this.initNavMetrics();
@@ -67,6 +71,10 @@ Page({
     
     // 检查是否需要显示新手教程
     this.checkFirstTime();
+
+    // 初始化道具次数，并尽量预加载激励视频广告（未配置时仅预留逻辑）
+    this.loadToolCredits();
+    this.preloadToolRewardedAd();
   },
 
   initNavMetrics() {
@@ -92,6 +100,205 @@ Page({
 
     this.setData({
       navSpacerPx: Math.max(0, navSpacerPx)
+    });
+  },
+
+  getToolCreditsFromStorage() {
+    try {
+      const credits = wx.getStorageSync('toolCredits');
+      if (credits && typeof credits === 'object') {
+        return {
+          undo: Math.max(0, parseInt(credits.undo, 10) || 0),
+          eliminate: Math.max(0, parseInt(credits.eliminate, 10) || 0)
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
+    return { undo: 1, eliminate: 1 };
+  },
+
+  saveToolCreditsToStorage(credits) {
+    try {
+      wx.setStorageSync('toolCredits', credits);
+    } catch (e) {
+      console.error('保存道具次数失败', e);
+    }
+  },
+
+  loadToolCredits() {
+    const credits = this.getToolCreditsFromStorage();
+    this.setData({
+      undoCredits: credits.undo,
+      eliminateCredits: credits.eliminate
+    });
+  },
+
+  updateToolCredits(nextCredits) {
+    const credits = {
+      undo: Math.max(0, parseInt(nextCredits.undo, 10) || 0),
+      eliminate: Math.max(0, parseInt(nextCredits.eliminate, 10) || 0)
+    };
+    this.saveToolCreditsToStorage(credits);
+    this.setData({
+      undoCredits: credits.undo,
+      eliminateCredits: credits.eliminate
+    });
+  },
+
+  consumeToolCredit(tool) {
+    const credits = {
+      undo: this.data.undoCredits,
+      eliminate: this.data.eliminateCredits
+    };
+    if (tool === 'undo') {
+      if (credits.undo <= 0) return false;
+      credits.undo -= 1;
+    } else if (tool === 'eliminate') {
+      if (credits.eliminate <= 0) return false;
+      credits.eliminate -= 1;
+    } else {
+      return false;
+    }
+    this.updateToolCredits(credits);
+    return true;
+  },
+
+  addToolCredit(tool, delta = 1) {
+    const credits = {
+      undo: this.data.undoCredits,
+      eliminate: this.data.eliminateCredits
+    };
+    if (tool === 'undo') {
+      credits.undo = Math.max(0, credits.undo + delta);
+    } else if (tool === 'eliminate') {
+      credits.eliminate = Math.max(0, credits.eliminate + delta);
+    }
+    this.updateToolCredits(credits);
+  },
+
+  getToolAdUnitId() {
+    try {
+      // 兼容已有的 rewardedAdUnitId；也支持单独的 toolRewardedAdUnitId
+      return wx.getStorageSync('toolRewardedAdUnitId') || wx.getStorageSync('rewardedAdUnitId') || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
+  preloadToolRewardedAd() {
+    if (!wx.createRewardedVideoAd) {
+      return;
+    }
+    const adUnitId = this.getToolAdUnitId();
+    if (!adUnitId || adUnitId === 'adunit-example') {
+      return;
+    }
+
+    if (this.toolRewardedAd) {
+      // 尽量预加载一次
+      if (!this.toolAdLoading) {
+        this.toolAdLoading = true;
+        this.toolRewardedAd.load().finally(() => {
+          this.toolAdLoading = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      this.toolRewardedAd = wx.createRewardedVideoAd({ adUnitId });
+      this.toolRewardedAd.onError((err) => {
+        console.error('道具广告加载失败', err);
+      });
+      this.toolRewardedAd.onLoad(() => {
+        // loaded
+      });
+      this.toolAdLoading = true;
+      this.toolRewardedAd.load().finally(() => {
+        this.toolAdLoading = false;
+      });
+    } catch (e) {
+      console.error('创建道具广告实例失败', e);
+      this.toolRewardedAd = null;
+      this.toolAdLoading = false;
+    }
+  },
+
+  watchAdToAddToolCredit(tool) {
+    if (!wx.createRewardedVideoAd) {
+      wx.showToast({
+        title: '当前版本不支持激励视频广告',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const adUnitId = this.getToolAdUnitId();
+    if (!adUnitId || adUnitId === 'adunit-example') {
+      wx.showToast({
+        title: '广告位已预留，暂未配置',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 复用预加载实例；若不存在则临时创建
+    const videoAd = this.toolRewardedAd || wx.createRewardedVideoAd({ adUnitId });
+    const title = tool === 'undo' ? '撤销' : '消除';
+
+    const onClose = (res) => {
+      if (res && res.isEnded) {
+        this.addToolCredit(tool, 1);
+        wx.showToast({
+          title: `${title} +1`,
+          icon: 'success',
+          duration: 1200
+        });
+      } else {
+        wx.showToast({
+          title: '需要看完广告才可增加次数',
+          icon: 'none'
+        });
+      }
+      videoAd.offClose(onClose);
+    };
+
+    videoAd.onClose(onClose);
+
+    videoAd.show().catch(() => {
+      videoAd.load().then(() => videoAd.show()).catch((err) => {
+        console.error('道具广告显示失败', err);
+        wx.showToast({
+          title: '广告加载失败，请稍后重试',
+          icon: 'none'
+        });
+        videoAd.offClose(onClose);
+      });
+    });
+  },
+
+  ensureToolCreditOrAd(tool, onAllowed) {
+    const hasCredit = tool === 'undo' ? this.data.undoCredits > 0 : this.data.eliminateCredits > 0;
+    if (hasCredit) {
+      const consumed = this.consumeToolCredit(tool);
+      if (consumed && typeof onAllowed === 'function') {
+        onAllowed();
+      }
+      return;
+    }
+
+    const title = tool === 'undo' ? '撤销' : '消除';
+    wx.showModal({
+      title: `${title}次数不足`,
+      content: `观看广告可获得 1 次「${title}」使用次数。`,
+      confirmText: '看广告',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          this.watchAdToAddToolCredit(tool);
+        }
+      }
     });
   },
 
@@ -143,6 +350,10 @@ Page({
     if (this.eliminateTipTimer) {
       clearTimeout(this.eliminateTipTimer);
       this.eliminateTipTimer = null;
+    }
+    if (this.toolRewardedAd) {
+      // 释放引用，避免重复监听造成泄漏
+      this.toolRewardedAd = null;
     }
     // 页面卸载时保存游戏状态
     this.saveGame();
@@ -416,7 +627,7 @@ Page({
       });
 
       // 动画总时长：滑动(150ms) + 合并(160ms) + 新方块(220ms) + 缓冲(50ms)
-      const TOTAL_ANIM_MS = 110 + 160 + 220 + 50;
+      const TOTAL_ANIM_MS = 72 + 160 + 220 + 50;
 
       // 处理胜利（在动画完成后）
       if (result.won) {
@@ -475,7 +686,7 @@ Page({
    */
   applySlideAnimations(moveMapping, oldGridData, newTile, scoreIncrease) {
     return new Promise((resolve) => {
-      const SLIDE_MS = 110;
+      const SLIDE_MS = 72;
       // 先更新UI到新状态
       const newGrid = this.game.grid;
       const newScore = this.game.score;
@@ -561,15 +772,15 @@ Page({
           }, 720);
         }
 
-        // 关键：第1帧先“无transition”完成位置回溯；第2帧打开transition；第3帧清空transform触发滑动
-        setTimeout(() => {
-          this.setData({ disableTileTransition: false }, () => {
-            setTimeout(() => {
-              this.setData({ tileTransforms: {} });
-              setTimeout(resolve, SLIDE_MS);
-            }, 16);
-          });
-        }, 16);
+      // 关键：第1帧先“无transition”完成位置回溯；第2帧打开transition；第3帧清空transform触发滑动
+      setTimeout(() => {
+        this.setData({ disableTileTransition: false }, () => {
+          setTimeout(() => {
+            this.setData({ tileTransforms: {} });
+            setTimeout(resolve, SLIDE_MS);
+          }, 16);
+        });
+      }, 16);
       });
     });
   },
@@ -765,22 +976,28 @@ Page({
       }
       return;
     }
-    
-    if (this.game && this.game.undo()) {
-      this.updateUI();
-      this.saveGame();
-      wx.showToast({
-        title: '已撤销',
-        icon: 'success',
-        duration: 1000
-      });
-    } else {
-      wx.showToast({
-        title: '无法撤销',
-        icon: 'none',
-        duration: 1500
-      });
+
+    if (this.isAnimating) {
+      return;
     }
+
+    this.ensureToolCreditOrAd('undo', () => {
+      if (this.game && this.game.undo()) {
+        this.updateUI();
+        this.saveGame();
+        wx.showToast({
+          title: '已撤销',
+          icon: 'success',
+          duration: 1000
+        });
+      } else {
+        wx.showToast({
+          title: '无法撤销',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+    });
   },
 
   /**
@@ -799,18 +1016,37 @@ Page({
    * 切换消除模式
    */
   toggleEliminateMode() {
-    const newMode = !this.data.eliminateMode;
-    this.setData({
-      eliminateMode: newMode,
-      eliminateTipVisible: newMode
-    });
-
-    if (this.eliminateTipTimer) {
-      clearTimeout(this.eliminateTipTimer);
-      this.eliminateTipTimer = null;
+    if (this.isAnimating) {
+      return;
     }
 
+    const newMode = !this.data.eliminateMode;
     if (newMode) {
+      // 一次只能消除一个方块：进入消除模式不消耗次数；成功消除后再扣除 1 次并自动退出
+      if (this.data.eliminateCredits <= 0) {
+        wx.showModal({
+          title: '消除次数不足',
+          content: '观看广告可获得 1 次「消除」使用次数。',
+          confirmText: '看广告',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              this.watchAdToAddToolCredit('eliminate');
+            }
+          }
+        });
+        return;
+      }
+
+      this.setData({
+        eliminateMode: true,
+        eliminateTipVisible: true
+      });
+
+      if (this.eliminateTipTimer) {
+        clearTimeout(this.eliminateTipTimer);
+        this.eliminateTipTimer = null;
+      }
       this.eliminateTipTimer = setTimeout(() => {
         this.setData({ eliminateTipVisible: false });
         this.eliminateTipTimer = null;
@@ -818,7 +1054,15 @@ Page({
       return;
     }
 
-    this.setData({ eliminateTipVisible: false });
+    this.setData({
+      eliminateMode: false,
+      eliminateTipVisible: false
+    });
+    
+    if (this.eliminateTipTimer) {
+      clearTimeout(this.eliminateTipTimer);
+      this.eliminateTipTimer = null;
+    }
   },
 
   /**
@@ -843,11 +1087,51 @@ Page({
     
     const row = e.currentTarget.dataset.row;
     const col = e.currentTarget.dataset.col;
-    
+
+    const hasTile = !!(
+      this.data.grid &&
+      this.data.grid[row] &&
+      this.data.grid[row][col]
+    );
+    if (!hasTile) {
+      wx.showToast({
+        title: '请选择一个方块',
+        icon: 'none',
+        duration: 900
+      });
+      return;
+    }
+
+    if (this.data.eliminateCredits <= 0) {
+      wx.showModal({
+        title: '消除次数不足',
+        content: '观看广告可获得 1 次「消除」使用次数。',
+        confirmText: '看广告',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            this.watchAdToAddToolCredit('eliminate');
+          }
+        }
+      });
+      return;
+    }
+
     if (this.game && this.game.removeTile(row, col)) {
+      // 成功消除：扣除次数，并自动退出消除模式（一次只能消除一个方块）
+      this.consumeToolCredit('eliminate');
+      this.setData({
+        eliminateMode: false,
+        eliminateTipVisible: false
+      });
+      if (this.eliminateTipTimer) {
+        clearTimeout(this.eliminateTipTimer);
+        this.eliminateTipTimer = null;
+      }
+
       this.updateUI();
       this.saveGame();
-      
+
       // 播放音效
       try {
         if (this.audioManager) {
@@ -856,19 +1140,20 @@ Page({
       } catch (e) {
         console.warn('播放消除音效异常', e);
       }
-      
+
       wx.showToast({
         title: '已消除',
         icon: 'success',
         duration: 800
       });
-    } else {
-      wx.showToast({
-        title: '无法消除',
-        icon: 'none',
-        duration: 1000
-      });
+      return;
     }
+
+    wx.showToast({
+      title: '无法消除',
+      icon: 'none',
+      duration: 1000
+    });
   },
   
   /**

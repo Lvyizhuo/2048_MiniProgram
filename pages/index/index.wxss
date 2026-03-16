@@ -41,6 +41,12 @@
   gap: 20rpx;
 }
 
+.header-buttons-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .header-buttons-right {
   display: flex;
   align-items: center;
@@ -134,6 +140,8 @@
   align-items: center;
   box-shadow: 0 4rpx 12rpx rgba(143, 122, 102, 0.3);
   transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 .btn-header:active {
@@ -147,10 +155,70 @@
   filter: brightness(0) invert(1);
 }
 
+.btn-tool {
+  width: 152rpx;
+  height: 76rpx;
+  border-radius: 22rpx;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.18) 100%);
+  border: 2rpx solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 10rpx 22rpx rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10rpx);
+}
+
+.btn-tool-text {
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #776e65;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(255, 255, 255, 0.35);
+}
+
+.btn-badge {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 10rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.18);
+  border: 2rpx solid rgba(255, 255, 255, 0.85);
+}
+
+.btn-badge.available {
+  background: linear-gradient(135deg, #ff6fae 0%, #ff8a65 100%);
+}
+
+.btn-badge.need-ad {
+  background: linear-gradient(135deg, rgba(237, 194, 46, 0.95) 0%, rgba(242, 177, 121, 0.95) 100%);
+}
+
+.badge-text {
+  font-size: 20rpx;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
 .btn-undo,
 .btn-eliminate,
 .btn-menu {
   background: linear-gradient(135deg, #bbada0 0%, #a99a8f 100%);
+}
+
+/* 工具按钮单独的可爱配色 */
+.btn-undo.btn-tool {
+  background: linear-gradient(135deg, rgba(168, 223, 255, 0.55) 0%, rgba(255, 255, 255, 0.18) 100%);
+  border-color: rgba(168, 223, 255, 0.55);
+}
+
+.btn-eliminate.btn-tool {
+  background: linear-gradient(135deg, rgba(255, 204, 233, 0.55) 0%, rgba(255, 255, 255, 0.18) 100%);
+  border-color: rgba(255, 204, 233, 0.55);
 }
 
 /* 特殊按钮样式 */
@@ -261,8 +329,8 @@
   font-size: 56rpx;
   font-weight: bold;
   position: relative;
-  /* 原版2048手感：短促、顺滑、轻微ease-in-out */
-  transition: transform 110ms ease-in-out,
+  /* 更跟手：更短时长 + 干净的减速 */
+  transition: transform 72ms cubic-bezier(0.2, 0, 0.2, 1),
               opacity 100ms ease-out;
   box-shadow: inset 0 -4rpx 10rpx rgba(0,0,0,0.1);
   will-change: transform;
@@ -671,33 +739,46 @@
 
 /* 菜单弹窗样式 */
 .menu-content {
-  padding: 40rpx;
+  padding: 40rpx 32rpx 32rpx;
   display: flex;
   flex-direction: column;
   max-height: 82vh;
+  overflow: hidden;
 }
 
 .menu-list {
-  margin: 40rpx 0;
+  margin: 20rpx 0 0;
   flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.menu-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: flex-start;
 }
 
 .menu-item {
-  padding: 32rpx 24rpx;
-  background: linear-gradient(135deg, #BBADA0 0%, #A99A8F 100%);
-  border-radius: 16rpx;
-  margin-bottom: 20rpx;
-  text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(187, 173, 160, 0.2);
+  box-sizing: border-box;
+  width: calc(50% - 9rpx);
+  padding: 22rpx 18rpx;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.62) 100%);
+  border-radius: 22rpx;
+  text-align: left;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 18rpx;
+  justify-content: flex-start;
+  gap: 16rpx;
+  border: 2rpx solid rgba(187, 173, 160, 0.28);
+  margin-bottom: 18rpx;
 }
 
-.menu-item:last-child {
-  margin-bottom: 0;
+.menu-item:nth-child(odd) {
+  margin-right: 0;
 }
 
 .menu-item:active {
@@ -705,12 +786,22 @@
   box-shadow: 0 2rpx 6rpx rgba(187, 173, 160, 0.15);
 }
 
+.menu-icon-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, rgba(187, 173, 160, 0.35) 0%, rgba(187, 173, 160, 0.18) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-shadow: inset 0 -6rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
 .menu-icon {
-  width: 44rpx;
-  text-align: center;
   font-size: 34rpx;
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.92);
+  color: #8f7a66;
   transform: translate3d(0, 0, 0);
 }
 
@@ -718,10 +809,63 @@
   opacity: 0.55;
 }
 
+.menu-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
 .menu-text {
-  font-size: 32rpx;
-  color: #FFFFFF;
-  font-weight: 700;
+  font-size: 30rpx;
+  color: #776E65;
+  font-weight: 900;
+  letter-spacing: 1rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 菜单说明已移除 */
+
+.menu-footer {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 10rpx;
+  padding-top: 10rpx;
+  border-top: 2rpx solid rgba(187, 173, 160, 0.18);
+}
+
+.menu-footer-btn {
+  flex: 1;
+  height: 76rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
+  border: none;
+  box-shadow: 0 14rpx 30rpx rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menu-footer-btn:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
+
+.menu-footer-back {
+  background: rgba(255, 255, 255, 0.72);
+  border: 2rpx solid rgba(187, 173, 160, 0.35);
+  color: #8f7a66;
+}
+
+.menu-footer-share {
+  background: linear-gradient(135deg, rgba(237, 194, 46, 0.22) 0%, rgba(242, 177, 121, 0.2) 100%);
+  border: 2rpx solid rgba(246, 124, 95, 0.35);
+  color: #f67c5f;
 }
 
 /* 教程弹窗样式 */
