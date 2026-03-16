@@ -1,38 +1,27 @@
 <view class="container">
-  <!-- 顶部Logo和标题 -->
-  <view class="header">
-    <view class="game-title">
-      <text class="title-text">新2048</text>
-    </view>
+  <!-- 装饰背景 -->
+  <view class="decoration decoration-top"></view>
+  <view class="decoration decoration-bottom"></view>
+
+  <!-- Logo区域 -->
+  <view class="logo-section">
     <view class="logo-container">
-      <image class="logo-image" src="/src/pic/rangking.png" mode="aspectFit"></image>
+      <view class="tile tile-2 number-tile">2048</view>
+      <view class="tile-0"></view>
     </view>
+    <text class="title">经典2048</text>
+    <text class="subtitle">挑战你的思维极限</text>
   </view>
 
-  <!-- 主要内容区 -->
-  <view class="main-content">
+  <!-- 按钮区域 -->
+  <view class="button-section">
     <!-- 最高分显示 -->
     <view class="best-score" wx:if="{{bestScore > 0}}">
-      <view class="best-score-label">最高分</view>
+      <view class="best-score-label">历史最高分</view>
       <view class="best-score-value">{{bestScore}}</view>
     </view>
 
-    <!-- 主要按钮 -->
-    <view class="button-group">
-      <view class="main-button btn-start" bindtap="startNewGame">
-        <text class="button-text">新2048</text>
-      </view>
-      <view class="main-button btn-challenge" bindtap="startChallenge">
-        <text class="button-text">发起挑战</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 底部链接 -->
-  <view class="footer-links">
-    <text class="link-text" bindtap="showPrivacy">隐私政策</text>
-    <text class="link-separator">|</text>
-    <text class="link-text" bindtap="showAgreement">用户协议</text>
+    <button class="start-btn" bindtap="startNewGame">开始游戏</button>
+    <button class="rank-btn" bindtap="showRankings">排行榜</button>
   </view>
 </view>
-
