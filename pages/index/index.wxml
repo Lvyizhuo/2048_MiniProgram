@@ -1,27 +1,142 @@
-<view class="container">
-  <!-- 装饰背景 -->
-  <view class="decoration decoration-top"></view>
-  <view class="decoration decoration-bottom"></view>
-
-  <!-- Logo区域 -->
-  <view class="logo-section">
-    <view class="logo-container">
-      <view class="tile tile-2 number-tile">2048</view>
-      <view class="tile-0"></view>
+<view class="container" catchtouchmove="preventMove">
+  <!-- 顶部信息区 -->
+  <view class="header">
+    <view class="header-top">
+      <text class="title">2048</text>
+      <view class="scores">
+        <view class="score-item">
+          <text class="score-label">SCORE</text>
+          <text class="score-value">{{score}}</text>
+        </view>
+        <view class="score-item">
+          <text class="score-label">BEST</text>
+          <text class="score-value">{{bestScore}}</text>
+        </view>
+      </view>
     </view>
-    <text class="title">经典2048</text>
-    <text class="subtitle">挑战你的思维极限</text>
+
+    <view class="header-bottom">
+      <view class="header-buttons-right">
+        <view class="btn-header btn-undo" bindtap="undo" bindlongpress="showUndoTip">
+          <image class="btn-icon" src="/src/pic/withdraw.png" mode="aspectFit"></image>
+        </view>
+        <view class="btn-header btn-eliminate {{eliminateMode ? 'btn-special active' : ''}}" bindtap="toggleEliminateMode" bindlongpress="showEliminateTip">
+          <image class="btn-icon" src="/src/pic/eliminate.png" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <view class="header-buttons-right">
+        <view class="btn-header btn-menu" bindtap="toggleMenu">
+          <image class="btn-icon" src="/src/pic/menu.png" mode="aspectFit"></image>
+        </view>
+      </view>
+    </view>
   </view>
 
-  <!-- 按钮区域 -->
-  <view class="button-section">
-    <!-- 最高分显示 -->
-    <view class="best-score" wx:if="{{bestScore > 0}}">
-      <view class="best-score-label">历史最高分</view>
-      <view class="best-score-value">{{bestScore}}</view>
-    </view>
+  <!-- 棋盘区域 -->
+  <view class="game-board" bindtouchstart="touchStart" bindtouchend="touchEnd">
+    <view class="grid-container">
+      <!-- 背景网格 -->
+      <view class="grid-background">
+        <view class="grid-row" wx:for="{{grid}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="rowIndex">
+          <view class="grid-cell" wx:for="{{row}}" wx:for-item="cell" wx:for-index="colIndex" wx:key="colIndex"></view>
+        </view>
+      </view>
 
-    <button class="start-btn" bindtap="startNewGame">开始游戏</button>
-    <button class="rank-btn" bindtap="showRankings">排行榜</button>
+      <!-- 方块层 -->
+      <view class="tiles-container">
+        <view class="tile-wrapper" wx:for="{{grid}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="rowIndex">
+          <view
+            wx:for="{{row}}"
+            wx:for-item="cell"
+            wx:for-index="colIndex"
+            wx:key="colIndex"
+            data-row="{{rowIndex}}"
+            data-col="{{colIndex}}"
+            bindtap="eliminateTile"
+            class="tile {{cell ? ('tile-' + cell) : 'tile-empty'}} {{tileAnimations[rowIndex + '-' + colIndex] ? tileAnimations[rowIndex + '-' + colIndex] : ''}} {{tilesToDisappear[rowIndex + '-' + colIndex] ? 'tile-merge-disappear' : ''}} {{hiddenNewTiles[rowIndex + '-' + colIndex] ? 'tile-hidden' : ''}} {{(eliminateMode && cell) ? 'tile-selectable' : ''}}"
+            style="{{tileTransforms[rowIndex + '-' + colIndex] ? ('transform:' + tileTransforms[rowIndex + '-' + colIndex] + ';') : ''}}"
+          >
+            <text wx:if="{{cell}}">{{cell}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 消除模式提示 -->
+  <view class="eliminate-tip {{eliminateMode ? 'show' : ''}}">
+    <text>消除模式已开启</text>
+    <text>点击方块进行消除</text>
+    <text>滑动即可退出</text>
+  </view>
+
+  <!-- 游戏结束弹窗 -->
+  <view class="modal {{showGameOverModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+    <view class="modal-mask" bindtap="closeGameOverModal"></view>
+    <view class="modal-content">
+      <view class="modal-title">游戏结束</view>
+      <view class="modal-text">当前得分</view>
+      <view class="modal-score">{{score}}</view>
+      <view class="modal-buttons">
+        <button class="modal-btn btn-primary" bindtap="newGame">再来一局</button>
+        <button class="modal-btn btn-secondary" bindtap="watchAdToRevive">看广告复活</button>
+        <button class="modal-btn btn-secondary" bindtap="goToMain">返回主页</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 胜利弹窗 -->
+  <view class="modal {{showWinModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+    <view class="modal-mask" bindtap="continueGame"></view>
+    <view class="modal-content">
+      <view class="modal-title modal-title-win">你赢了！</view>
+      <view class="modal-text">继续挑战更高分？</view>
+      <view class="modal-buttons">
+        <button class="modal-btn btn-primary" bindtap="continueGame">继续游戏</button>
+        <button class="modal-btn btn-secondary" bindtap="newGame">重新开始</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 菜单弹窗 -->
+  <view class="modal {{showMenuModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+    <view class="modal-mask" bindtap="closeMenu"></view>
+    <view class="modal-content menu-content">
+      <view class="modal-title">菜单</view>
+      <view class="menu-list">
+        <view class="menu-item" bindtap="continueGameFromMenu"><text class="menu-text">继续游戏</text></view>
+        <view class="menu-item" bindtap="newGame"><text class="menu-text">新游戏</text></view>
+        <view class="menu-item" bindtap="toggleSound"><text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text></view>
+        <view class="menu-item" bindtap="showTutorialFromMenu"><text class="menu-text">新手教程</text></view>
+        <view class="menu-item" bindtap="goToMain"><text class="menu-text">返回主页</text></view>
+      </view>
+      <button class="modal-btn btn-secondary" bindtap="closeMenu">关闭</button>
+    </view>
+  </view>
+
+  <!-- 新手教程弹窗 -->
+  <view class="modal {{showTutorialModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+    <view class="modal-mask" bindtap="closeTutorial"></view>
+    <view class="modal-content tutorial-content">
+      <view class="modal-title">新手教程</view>
+      <view class="modal-text" wx:if="{{tutorialStep === 0}}">滑动屏幕移动方块，相同数字会合并。</view>
+      <view class="modal-text" wx:if="{{tutorialStep === 1}}">每次移动后会生成新方块，尽量合成更大数字。</view>
+      <view class="modal-text" wx:if="{{tutorialStep === 2}}">可撤销与消除方块，祝你玩得开心！</view>
+      <view class="tutorial-image">
+        <image wx:if="{{tutorialStep === 0}}" src="/src/pic/bug0.png" mode="aspectFit"></image>
+        <image wx:if="{{tutorialStep === 1}}" src="/src/pic/bug1.png" mode="aspectFit"></image>
+        <image wx:if="{{tutorialStep === 2}}" src="/src/pic/bug2.png" mode="aspectFit"></image>
+      </view>
+      <view class="tutorial-indicator">
+        <view class="indicator-dot {{tutorialStep === 0 ? 'active' : ''}}"></view>
+        <view class="indicator-dot {{tutorialStep === 1 ? 'active' : ''}}"></view>
+        <view class="indicator-dot {{tutorialStep === 2 ? 'active' : ''}}"></view>
+      </view>
+      <view class="tutorial-buttons">
+        <button class="modal-btn btn-secondary tutorial-btn" wx:if="{{tutorialStep > 0}}" bindtap="prevTutorialStep">上一步</button>
+        <button class="modal-btn btn-primary tutorial-btn" bindtap="nextTutorialStep">{{tutorialStep < 2 ? '下一步' : '完成'}}</button>
+      </view>
+    </view>
   </view>
 </view>

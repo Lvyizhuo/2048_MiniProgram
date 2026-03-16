@@ -34,6 +34,15 @@ Page({
     });
   },
 
+  /**
+   * 查看排行榜
+   */
+  showRankings() {
+    wx.showToast({
+      title: '功能开发中',
+      icon: 'none'
+    });
+  },
 
   /**
    * 发起挑战
@@ -67,4 +76,3 @@ Page({
     });
   }
 });
-

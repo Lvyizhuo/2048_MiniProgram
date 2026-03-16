@@ -55,11 +55,8 @@ class AudioManager {
       } catch (e) {
         // 忽略seek错误，可能是音频未准备好
       }
-      // 播放音频
-      this.moveAudio.play().catch(e => {
-        // 静默处理音频播放错误，不影响游戏逻辑
-        console.warn('播放移动音效失败', e);
-      });
+      // 播放音频（`InnerAudioContext.play()`不返回Promise，错误通过onError回调或try/catch兜底）
+      this.moveAudio.play();
     } catch (e) {
       // 捕获所有可能的异常，确保不影响游戏逻辑
       console.warn('音效播放异常', e);
@@ -86,11 +83,8 @@ class AudioManager {
       } catch (e) {
         // 忽略seek错误，可能是音频未准备好
       }
-      // 播放音频
-      this.mergeAudio.play().catch(e => {
-        // 静默处理音频播放错误，不影响游戏逻辑
-        console.warn('播放合并音效失败', e);
-      });
+      // 播放音频（`InnerAudioContext.play()`不返回Promise，错误通过onError回调或try/catch兜底）
+      this.mergeAudio.play();
     } catch (e) {
       // 捕获所有可能的异常，确保不影响游戏逻辑
       console.warn('音效播放异常', e);
@@ -136,4 +130,3 @@ class AudioManager {
 }
 
 module.exports = AudioManager;
-

@@ -666,8 +666,15 @@ Page({
   goToMain() {
     // 先保存游戏
     this.saveGame();
-    // 返回主界面
-    wx.navigateBack();
+    // 返回主界面（兼容直接从入口进入本页的情况）
+    wx.navigateBack({
+      delta: 1,
+      fail: () => {
+        wx.reLaunch({
+          url: '/pages/main/main'
+        });
+      }
+    });
   },
 
   /**
@@ -693,10 +700,26 @@ Page({
    * 看视频复活
    */
   watchAdToRevive() {
+    if (!wx.createRewardedVideoAd) {
+      wx.showToast({
+        title: '当前版本不支持激励视频广告',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 通过本地配置/存储注入广告单元ID；未配置时不尝试拉取，避免按钮点击直接报错
+    const adUnitId = wx.getStorageSync('rewardedAdUnitId') || '';
+    if (!adUnitId || adUnitId === 'adunit-example') {
+      wx.showToast({
+        title: '广告未配置，暂不可复活',
+        icon: 'none'
+      });
+      return;
+    }
+
     // 创建激励视频广告实例
-    const videoAd = wx.createRewardedVideoAd({
-      adUnitId: 'adunit-example' // 需要替换为实际的广告单元ID
-    });
+    const videoAd = wx.createRewardedVideoAd({ adUnitId });
 
     // 监听广告加载成功
     videoAd.onLoad(() => {
@@ -763,4 +786,3 @@ Page({
     };
   }
 });
-
