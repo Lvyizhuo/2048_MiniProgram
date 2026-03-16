@@ -1,6 +1,6 @@
 {
-  "libVersion": "3.11.0",
-  "projectname": "2048",
+  "libVersion": "3.15.0",
+  "projectname": "2048_MiniProgram",
   "condition": {},
   "setting": {
     "urlCheck": false,
