@@ -23,76 +23,117 @@
   margin-bottom: 20rpx;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 20rpx;
-  padding: 20rpx;
+  padding: 16rpx;
   backdrop-filter: blur(10rpx);
 }
 
 .header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
+  align-items: flex-start;
+  gap: 14rpx;
 }
 
-.header-bottom {
+.header-left {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20rpx;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12rpx;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
-.header-buttons-left {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.header-buttons-right {
+.header-left-top {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 14rpx;
 }
 
-/* 游戏标题 - 现代化设计 */
-.title {
-  font-size: 64rpx;
-  font-weight: 800;
-  background: linear-gradient(135deg, #776e65 0%, #8f7a66 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -2rpx;
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10rpx;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tools-left {
+  justify-content: flex-start;
+}
+
+/* 游戏标题 - 更紧凑 */
+.game-title {
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #776e65;
+  letter-spacing: 2rpx;
+  line-height: 1;
+  max-width: 180rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 分数显示 - 卡片式设计 */
 .scores {
   display: flex;
-  gap: 16rpx;
+  flex-direction: row;
+  gap: 10rpx;
+  align-items: stretch;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .score-item {
-  background: linear-gradient(135deg, #bbada0 0%, #a99a8f 100%);
-  border-radius: 16rpx;
-  padding: 16rpx 24rpx;
+  background: #bbada0;
+  border-radius: 20rpx;
+  padding: 14rpx 16rpx;
   text-align: center;
-  min-width: 100rpx;
-  box-shadow: 0 4rpx 12rpx rgba(187, 173, 160, 0.3);
+  min-width: 210rpx;
+  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.12);
+  border: 2rpx solid rgba(187, 173, 160, 0.35);
   position: relative;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-current {
+  background: #f65e3b;
+  border-color: rgba(246, 94, 59, 0.35);
+}
+
+.score-best {
+  background: #edc22e;
+  border-color: rgba(237, 194, 46, 0.35);
 }
 
 .score-label {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 6rpx;
-  text-transform: uppercase;
-  letter-spacing: 1rpx;
+  color: rgba(249, 246, 242, 0.95);
+  margin-bottom: 8rpx;
+  letter-spacing: 2rpx;
+  font-weight: 900;
+  text-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.12);
 }
 
 .score-value {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 52rpx;
+  font-weight: 900;
+  color: #f9f6f2;
+  line-height: 1.05;
+  text-shadow: 0 10rpx 22rpx rgba(0, 0, 0, 0.2);
   will-change: transform;
   transform: translate3d(0, 0, 0);
 }
@@ -111,8 +152,8 @@
 /* +XX 飘字 */
 .score-plus {
   position: absolute;
-  right: 16rpx;
-  top: 10rpx;
+  right: 12rpx;
+  top: 12rpx;
   font-size: 22rpx;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.92);
@@ -156,8 +197,8 @@
 }
 
 .btn-tool {
-  width: 152rpx;
-  height: 76rpx;
+  width: 128rpx;
+  height: 68rpx;
   border-radius: 22rpx;
   justify-content: center;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.18) 100%);
@@ -167,7 +208,7 @@
 }
 
 .btn-tool-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 900;
   color: #776e65;
   letter-spacing: 2rpx;
@@ -176,8 +217,8 @@
 
 .btn-badge {
   position: absolute;
-  top: -12rpx;
-  right: -12rpx;
+  top: -10rpx;
+  right: -10rpx;
   min-width: 32rpx;
   height: 32rpx;
   padding: 0 10rpx;
@@ -272,8 +313,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  box-shadow: inset 0 0 26rpx rgba(0, 0, 0, 0.08),
-              0 8rpx 32rpx rgba(187, 173, 160, 0.3);
+  box-shadow: 0 8rpx 32rpx rgba(187, 173, 160, 0.28);
 }
 
 .grid-row {
@@ -318,7 +358,7 @@
   margin-bottom: 0;
 }
 
-/* 方块样式 - 增强立体感 */
+/* 方块样式 - 扁平化 */
 .tile {
   flex: 1;
   margin-right: 12rpx;
@@ -332,7 +372,6 @@
   /* 更跟手：更短时长 + 干净的减速 */
   transition: transform 72ms cubic-bezier(0.2, 0, 0.2, 1),
               opacity 100ms ease-out;
-  box-shadow: inset 0 -4rpx 10rpx rgba(0,0,0,0.1);
   will-change: transform;
   transform: translate3d(0, 0, 0);
 }
@@ -378,111 +417,77 @@
   }
 }
 
-/* 数字颜色方案 - 增强渐变 */
+/* 数字颜色方案 - 2048 扁平色 */
 .tile-2 {
-  background: linear-gradient(180deg, #EEE4DA 0%, #E5D9C8 100%);
+  background: #eee4da;
   color: #776E65;
   font-size: 56rpx;
 }
 
 .tile-4 {
-  background: linear-gradient(180deg, #EDE0C8 0%, #E3D5B8 100%);
+  background: #ede0c8;
   color: #776E65;
   font-size: 56rpx;
 }
 
 .tile-8 {
-  background: linear-gradient(180deg, #F2B179 0%, #E5A068 100%);
+  background: #f2b179;
   color: #F9F6F2;
   font-size: 56rpx;
 }
 
 .tile-16 {
-  background: linear-gradient(180deg, #F59563 0%, #E88552 100%);
+  background: #f59563;
   color: #F9F6F2;
   font-size: 56rpx;
 }
 
 .tile-32 {
-  background: linear-gradient(180deg, #F67C5F 0%, #E96C4E 100%);
+  background: #f67c5f;
   color: #F9F6F2;
   font-size: 56rpx;
 }
 
 .tile-64 {
-  background: linear-gradient(180deg, #F65E3B 0%, #E94E2A 100%);
+  background: #f65e3b;
   color: #F9F6F2;
   font-size: 56rpx;
 }
 
 .tile-128 {
-  background: linear-gradient(180deg, #EDCF72 0%, #E0C261 100%);
+  background: #edcf72;
   color: #F9F6F2;
   font-size: 52rpx;
-  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
 }
 
 .tile-256 {
-  background: linear-gradient(180deg, #EDCC61 0%, #E0BF50 100%);
+  background: #edcc61;
   color: #F9F6F2;
   font-size: 52rpx;
-  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
 }
 
 .tile-512 {
-  background: linear-gradient(180deg, #EDC850 0%, #E0BB3F 100%);
+  background: #edc850;
   color: #F9F6F2;
   font-size: 52rpx;
-  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
 }
 
 .tile-1024 {
-  background: linear-gradient(180deg, #EDC53F 0%, #E0B82E 100%);
+  background: #edc53f;
   color: #F9F6F2;
   font-size: 48rpx;
-  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
 }
 
 .tile-2048 {
-  background: linear-gradient(180deg, #EDC22E 0%, #E0B51D 100%);
+  background: #edc22e;
   color: #F9F6F2;
   font-size: 48rpx;
-  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
-}
-
-/* 128+ 呼吸光效（不占用transform，避免与滑动冲突） */
-.tile-128::after,
-.tile-256::after,
-.tile-512::after,
-.tile-1024::after,
-.tile-2048::after,
-.tile-4096::after,
-.tile-8192::after {
-  content: '';
-  position: absolute;
-  inset: -10rpx;
-  border-radius: 16rpx;
-  background: radial-gradient(circle at 30% 30%,
-    rgba(255, 255, 255, 0.32) 0%,
-    rgba(243, 215, 116, 0.24) 35%,
-    rgba(243, 215, 116, 0) 70%);
-  opacity: 0.55;
-  filter: blur(10rpx);
-  pointer-events: none;
-  will-change: opacity, transform;
-  transform: translate3d(0, 0, 0) scale(0.98);
-  animation: glowBreath 2.6s ease-in-out infinite;
-}
-
-@keyframes glowBreath {
-  0%, 100% { opacity: 0.42; transform: translate3d(0, 0, 0) scale(0.98); }
-  50%      { opacity: 0.78; transform: translate3d(0, 0, 0) scale(1.03); }
 }
 
 /* 更大的数字 */
 .tile-4096,
 .tile-8192 {
-  background: linear-gradient(180deg, #3C3A32 0%, #2E2C26 100%);
+  background: #3c3a32;
   color: #F9F6F2;
   font-size: 44rpx;
 }

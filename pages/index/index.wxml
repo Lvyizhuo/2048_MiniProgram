@@ -5,39 +5,41 @@
   <!-- 顶部信息区 -->
   <view class="header">
     <view class="header-top">
-      <text class="title">2048</text>
-      <view class="scores">
-        <view class="score-item">
-          <text class="score-label">SCORE</text>
-          <text class="score-value {{scorePop ? 'score-pop' : ''}}">{{score}}</text>
-          <view class="score-plus" wx:if="{{scorePlus && scorePlus.value > 0}}">+{{scorePlus.value}}</view>
-        </view>
-        <view class="score-item">
-          <text class="score-label">BEST</text>
-          <text class="score-value">{{bestScore}}</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="header-bottom">
-      <view class="header-buttons-left">
-        <view class="btn-header btn-tool btn-undo" bindtap="undo" bindlongpress="showUndoTip">
-          <text class="btn-tool-text">撤销</text>
-          <view class="btn-badge {{undoCredits > 0 ? 'available' : 'need-ad'}}">
-            <text class="badge-text">{{undoCredits > 0 ? undoCredits : 'AD'}}</text>
+      <view class="header-left">
+        <view class="header-left-top">
+          <view class="btn-header btn-menu" bindtap="toggleMenu">
+            <image class="btn-icon" src="/src/pic/menu.png" mode="aspectFit"></image>
           </view>
+          <text class="game-title">2048</text>
         </view>
-        <view class="btn-header btn-tool btn-eliminate {{eliminateMode ? 'btn-special active' : ''}}" bindtap="toggleEliminateMode" bindlongpress="showEliminateTip">
-          <text class="btn-tool-text">消除</text>
-          <view class="btn-badge {{eliminateCredits > 0 ? 'available' : 'need-ad'}}">
-            <text class="badge-text">{{eliminateCredits > 0 ? eliminateCredits : 'AD'}}</text>
+
+        <view class="tools tools-left">
+          <view class="btn-header btn-tool btn-undo" bindtap="undo" bindlongpress="showUndoTip">
+            <text class="btn-tool-text">撤销</text>
+            <view class="btn-badge {{undoCredits > 0 ? 'available' : 'need-ad'}}">
+              <text class="badge-text">{{undoCredits > 0 ? undoCredits : 'AD'}}</text>
+            </view>
+          </view>
+          <view class="btn-header btn-tool btn-eliminate {{eliminateMode ? 'btn-special active' : ''}}" bindtap="toggleEliminateMode" bindlongpress="showEliminateTip">
+            <text class="btn-tool-text">消除</text>
+            <view class="btn-badge {{eliminateCredits > 0 ? 'available' : 'need-ad'}}">
+              <text class="badge-text">{{eliminateCredits > 0 ? eliminateCredits : 'AD'}}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <view class="header-buttons-right">
-        <view class="btn-header btn-menu" bindtap="toggleMenu">
-          <image class="btn-icon" src="/src/pic/menu.png" mode="aspectFit"></image>
+      <view class="header-right">
+        <view class="scores">
+          <view class="score-item score-current">
+            <text class="score-label">当前分数</text>
+            <text class="score-value {{scorePop ? 'score-pop' : ''}}">{{score}}</text>
+            <view class="score-plus" wx:if="{{scorePlus && scorePlus.value > 0}}">+{{scorePlus.value}}</view>
+          </view>
+          <view class="score-item score-best">
+            <text class="score-label">最高分</text>
+            <text class="score-value">{{bestScore}}</text>
+          </view>
         </view>
       </view>
     </view>
