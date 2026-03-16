@@ -1,11 +1,21 @@
 Page({
   data: {
-    bestScore: 0
+    bestScore: 0,
+    hasSavedGame: false,
+    savedScore: 0
   },
 
   onLoad() {
     // 加载历史最高分
     this.loadBestScore();
+    // 加载是否存在未结束的对局
+    this.loadSavedGameInfo();
+  },
+
+  onShow() {
+    // 返回主页时刷新一次，确保分数/存档状态最新
+    this.loadBestScore();
+    this.loadSavedGameInfo();
   },
 
   /**
@@ -25,13 +35,69 @@ Page({
   },
 
   /**
-   * 开始新游戏
+   * 加载存档信息（用于“继续游戏/新游戏”入口）
    */
-  startNewGame() {
-    // 直接跳转到游戏页面，游戏页面会处理继续游戏或新游戏的逻辑
+  loadSavedGameInfo() {
+    try {
+      const saved = wx.getStorageSync('gameState');
+      const hasSavedGame = !!(saved && saved.grid && Array.isArray(saved.grid));
+      this.setData({
+        hasSavedGame,
+        savedScore: hasSavedGame ? (parseInt(saved.score, 10) || 0) : 0
+      });
+    } catch (e) {
+      console.error('读取存档信息失败', e);
+      this.setData({
+        hasSavedGame: false,
+        savedScore: 0
+      });
+    }
+  },
+
+  /**
+   * 继续/开始游戏
+   */
+  continueGame() {
     wx.navigateTo({
       url: '/pages/index/index'
     });
+  },
+
+  /**
+   * 新游戏（清空存档）
+   */
+  startFreshGame() {
+    if (this.data.hasSavedGame) {
+      wx.showModal({
+        title: '新游戏',
+        content: '确定要开始新游戏吗？当前存档将被清空。',
+        confirmText: '开始',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            try {
+              wx.removeStorageSync('gameState');
+            } catch (e) {
+              console.error('清空存档失败', e);
+            }
+            this.setData({
+              hasSavedGame: false,
+              savedScore: 0
+            });
+            this.continueGame();
+          }
+        }
+      });
+      return;
+    }
+    this.continueGame();
+  },
+
+  /**
+   * 兼容旧入口：开始游戏
+   */
+  startNewGame() {
+    this.continueGame();
   },
 
   /**

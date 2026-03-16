@@ -5,6 +5,8 @@
   height: 100vh;
   background: linear-gradient(135deg, #faf8ef 0%, #f4f1e8 100%);
   padding: 20rpx;
+  padding-top: calc(20rpx + env(safe-area-inset-top));
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -144,8 +146,10 @@
 
 .grid-container {
   position: relative;
-  width: 680rpx;
-  height: 680rpx;
+  width: 92vw;
+  height: 92vw;
+  max-width: 680rpx;
+  max-height: 680rpx;
 }
 
 /* 背景网格 */
@@ -504,10 +508,14 @@
 /* 菜单弹窗样式 */
 .menu-content {
   padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  max-height: 82vh;
 }
 
 .menu-list {
   margin: 40rpx 0;
+  flex: 1;
 }
 
 .menu-item {

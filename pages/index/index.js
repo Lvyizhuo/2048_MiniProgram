@@ -13,17 +13,19 @@ Page({
     showTutorialModal: false,
     tutorialStep: 0,
     soundEnabled: true,
-    touchStartX: 0,
-    touchStartY: 0,
     tileAnimations: {}, // 存储方块动画状态
     tileTransforms: {}, // 存储方块变换样式
     tilesToDisappear: {}, // 标记需要消失的方块（被合并的源方块）
     hiddenNewTiles: {}, // 标记需要隐藏的新方块（避免闪烁）
-    eliminateMode: false // 消除模式开关
+    eliminateMode: false, // 消除模式开关
+    vibrationEnabled: true // 震动反馈开关
   },
 
   game: null,
   audioManager: null,
+  touchStartX: 0,
+  touchStartY: 0,
+  isAnimating: false,
 
   onLoad() {
     // 初始化音效管理器
@@ -37,9 +39,26 @@ Page({
     
     // 更新界面
     this.updateUI();
+
+    // 加载震动开关
+    try {
+      const vibrationEnabled = wx.getStorageSync('vibrationEnabled');
+      if (vibrationEnabled !== '') {
+        this.setData({
+          vibrationEnabled: vibrationEnabled !== false
+        });
+      }
+    } catch (e) {
+      console.error('读取震动设置失败', e);
+    }
     
     // 检查是否需要显示新手教程
     this.checkFirstTime();
+  },
+
+  onReady() {
+    // 首次渲染后测量棋盘步长，用于更精准的滑动动画（适配不同屏幕）
+    this.measureCellStep();
   },
   
   onUnload() {
@@ -109,7 +128,36 @@ Page({
       bestScore: this.game.bestScore,
       gameOver: this.game.gameOver,
       soundEnabled: this.audioManager ? this.audioManager.soundEnabled : true
+    }, () => {
+      // grid变化后可能影响布局，延迟刷新测量结果
+      this.measureCellStep();
     });
+  },
+
+  /**
+   * 测量每次位移的像素步长（一个格子宽度 + 间距）
+   */
+  measureCellStep() {
+    if (!wx.createSelectorQuery) {
+      return;
+    }
+    const query = wx.createSelectorQuery().in(this);
+    query.selectAll('.grid-cell').boundingClientRect((rects) => {
+      if (!rects || rects.length < 8) {
+        return;
+      }
+
+      // 找到第一行的4个格子（按top聚类）
+      const minTop = rects.reduce((min, r) => Math.min(min, r.top), rects[0].top);
+      const firstRow = rects.filter(r => Math.abs(r.top - minTop) < 2).sort((a, b) => a.left - b.left);
+      if (firstRow.length < 2) {
+        return;
+      }
+      const step = firstRow[1].left - firstRow[0].left;
+      if (step > 0) {
+        this.cellStepPx = step;
+      }
+    }).exec();
   },
   
   /**
@@ -193,14 +241,20 @@ Page({
    * 触摸开始
    */
   touchStart(e) {
-    this.data.touchStartX = e.touches[0].clientX;
-    this.data.touchStartY = e.touches[0].clientY;
+    if (!e.touches || e.touches.length !== 1) {
+      return;
+    }
+    this.touchStartX = e.touches[0].clientX;
+    this.touchStartY = e.touches[0].clientY;
   },
 
   /**
    * 触摸结束
    */
   touchEnd(e) {
+    if (this.isAnimating || this.data.showMenuModal || this.data.showTutorialModal || this.data.showWinModal || this.data.showGameOverModal) {
+      return;
+    }
     if (this.data.gameOver) {
       return;
     }
@@ -208,8 +262,8 @@ Page({
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     
-    const deltaX = touchEndX - this.data.touchStartX;
-    const deltaY = touchEndY - this.data.touchStartY;
+    const deltaX = touchEndX - this.touchStartX;
+    const deltaY = touchEndY - this.touchStartY;
     
     // 最小滑动距离
     const minSwipeDistance = 30;
@@ -242,15 +296,27 @@ Page({
   },
 
   /**
+   * 触摸取消（例如系统手势/来电等）
+   */
+  touchCancel() {
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+  },
+
+  /**
    * 处理移动
    */
   handleMove(direction) {
+    if (this.isAnimating || this.data.showMenuModal || this.data.showTutorialModal || this.data.showWinModal || this.data.showGameOverModal) {
+      return;
+    }
     // 保存移动前的grid状态用于动画
     const oldGridData = JSON.parse(JSON.stringify(this.data.grid));
     
     const result = this.game.moveWithTracking(direction);
     
     if (result.moved) {
+      this.isAnimating = true;
       // 播放移动音效
       try {
         if (this.audioManager) {
@@ -261,7 +327,9 @@ Page({
       }
       
       // 严格按顺序执行动画：滑动 → 合并 → 新方块生成
-      this.executeAnimationsInSequence(result, oldGridData);
+      this.executeAnimationsInSequence(result, oldGridData).finally(() => {
+        this.isAnimating = false;
+      });
       
       // 处理胜利（在动画完成后）
       if (result.won) {
@@ -298,12 +366,12 @@ Page({
   executeAnimationsInSequence(result, oldGridData) {
     const moveMapping = result.moveMapping;
     if (!moveMapping) {
-      return;
+      return Promise.resolve();
     }
 
     // 第一步：应用滑动动画（180ms）
     // 传入新方块信息，在滑动动画时暂时隐藏它
-    this.applySlideAnimations(moveMapping, oldGridData, result.newTile).then(() => {
+    return this.applySlideAnimations(moveMapping, oldGridData, result.newTile).then(() => {
       // 滑动动画完成后，执行合并动画（如果有合并）
       // 传入新方块信息，用于排除新方块位置的合并动画
       if (moveMapping.merges && moveMapping.merges.length > 0) {
@@ -313,7 +381,7 @@ Page({
       return Promise.resolve();
     }).then(() => {
       // 合并动画完成后（或没有合并时），执行新方块生成动画
-      this.applyNewTileAnimation(result.newTile);
+      return this.applyNewTileAnimation(result.newTile);
     });
   },
 
@@ -362,16 +430,16 @@ Page({
         // 等待DOM更新后，设置transform偏移
         setTimeout(() => {
           const transforms = {};
-          // 每个格子的大小：680rpx / 4 = 170rpx（包括间距）
-          const cellSize = 170;
+          const cellStep = this.cellStepPx || 170;
+          const unit = this.cellStepPx ? 'px' : 'rpx';
           
           // 处理普通移动：在新位置设置transform，从旧位置移动过来
           if (moveMapping.moves) {
             moveMapping.moves.forEach(move => {
               const key = `${move.to.row}-${move.to.col}`;
-              const deltaX = (move.from.col - move.to.col) * cellSize;
-              const deltaY = (move.from.row - move.to.row) * cellSize;
-              transforms[key] = `translate(${deltaX}rpx, ${deltaY}rpx)`;
+              const deltaX = (move.from.col - move.to.col) * cellStep;
+              const deltaY = (move.from.row - move.to.row) * cellStep;
+              transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
             });
           }
           
@@ -381,9 +449,9 @@ Page({
               if (merge.from.length > 0) {
                 const source = merge.from[0];
                 const key = `${merge.to.row}-${merge.to.col}`;
-                const deltaX = (source.col - merge.to.col) * cellSize;
-                const deltaY = (source.row - merge.to.row) * cellSize;
-                transforms[key] = `translate(${deltaX}rpx, ${deltaY}rpx)`;
+                const deltaX = (source.col - merge.to.col) * cellStep;
+                const deltaY = (source.row - merge.to.row) * cellStep;
+                transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
               }
             });
           }
@@ -427,20 +495,44 @@ Page({
         if (this.audioManager) {
           this.audioManager.playMerge();
         }
-        wx.vibrateShort({
-          type: 'light'
-        });
+        if (this.data.vibrationEnabled && wx.vibrateShort) {
+          wx.vibrateShort({
+            type: 'light'
+          });
+        }
       } catch (e) {
         console.warn('播放合并音效异常', e);
       }
       
-      // 清除被合并方块标记
-      this.setData({
-        tilesToDisappear: {}
+      // 合并目标方块的轻量缩放动画
+      const animations = { ...this.data.tileAnimations };
+      moveMapping.merges.forEach(merge => {
+        const key = `${merge.to.row}-${merge.to.col}`;
+        // 排除新生成方块位置，避免动画冲突
+        if (newTile && newTile.row === merge.to.row && newTile.col === merge.to.col) {
+          return;
+        }
+        animations[key] = 'tile-merged';
       });
-      
-      // 立即resolve，不等待动画
-      resolve();
+
+      this.setData({
+        tileAnimations: animations
+      }, () => {
+        setTimeout(() => {
+          // 清理合并动画与消失标记（让opacity过渡生效）
+          moveMapping.merges.forEach(merge => {
+            const key = `${merge.to.row}-${merge.to.col}`;
+            if (animations[key] === 'tile-merged') {
+              animations[key] = '';
+            }
+          });
+          this.setData({
+            tileAnimations: animations,
+            tilesToDisappear: {}
+          });
+          resolve();
+        }, 200);
+      });
     });
   },
 
@@ -451,7 +543,7 @@ Page({
    */
   applyNewTileAnimation(newTile) {
     if (!newTile) {
-      return;
+      return Promise.resolve();
     }
     
     const key = `${newTile.row}-${newTile.col}`;
@@ -465,20 +557,23 @@ Page({
       [key]: 'tile-new'
     };
     
-    this.setData({
-      hiddenNewTiles: hiddenTiles,
-      tileAnimations: animations
-    }, () => {
-      // 在下一帧确保DOM已更新后再开始动画
-      setTimeout(() => {
-        // 移除动画类名（250ms后）
+    return new Promise((resolve) => {
+      this.setData({
+        hiddenNewTiles: hiddenTiles,
+        tileAnimations: animations
+      }, () => {
+        // 在下一帧确保DOM已更新后再开始动画
         setTimeout(() => {
-          animations[key] = '';
-          this.setData({
-            tileAnimations: animations
-          });
-        }, 250); // 250ms新方块生成动画
-      }, 16); // 约一帧的时间
+          // 移除动画类名（250ms后）
+          setTimeout(() => {
+            animations[key] = '';
+            this.setData({
+              tileAnimations: animations
+            });
+            resolve();
+          }, 250); // 250ms新方块生成动画
+        }, 16); // 约一帧的时间
+      });
     });
   },
 
@@ -486,6 +581,25 @@ Page({
    * 新游戏
    */
   newGame() {
+    // 游戏未结束且已有进度时，避免误触直接清空
+    if (!this.data.gameOver && this.data.score > 0) {
+      wx.showModal({
+        title: '新游戏',
+        content: '确定要重新开始吗？当前进度将丢失。',
+        confirmText: '重新开始',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            this.newGameForce();
+          }
+        }
+      });
+      return;
+    }
+    this.newGameForce();
+  },
+
+  newGameForce() {
     this.game.init();
     this.setData({
       showGameOverModal: false,
@@ -648,6 +762,26 @@ Page({
         duration: 1500
       });
     }
+  },
+
+  /**
+   * 切换震动反馈
+   */
+  toggleVibration() {
+    const enabled = !this.data.vibrationEnabled;
+    this.setData({
+      vibrationEnabled: enabled
+    });
+    try {
+      wx.setStorageSync('vibrationEnabled', enabled);
+    } catch (e) {
+      console.error('保存震动设置失败', e);
+    }
+    wx.showToast({
+      title: enabled ? '震动已开启' : '震动已关闭',
+      icon: 'none',
+      duration: 1500
+    });
   },
   
   /**

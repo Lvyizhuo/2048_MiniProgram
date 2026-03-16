@@ -11,6 +11,8 @@ page {
   justify-content: center;
   height: 100vh;
   padding: 40rpx;
+  padding-top: calc(40rpx + env(safe-area-inset-top));
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
@@ -153,6 +155,30 @@ page {
   -webkit-text-fill-color: transparent;
 }
 
+/* 上次得分显示 */
+.last-score {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 20rpx;
+  padding: 24rpx 60rpx;
+  margin-bottom: 30rpx;
+  text-align: center;
+  border: 2rpx solid rgba(187, 173, 160, 0.25);
+  backdrop-filter: blur(10rpx);
+}
+
+.last-score-label {
+  font-size: 24rpx;
+  color: #8f7a66;
+  margin-bottom: 10rpx;
+  letter-spacing: 2rpx;
+}
+
+.last-score-value {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #776e65;
+}
+
 /* 主按钮 - 渐变效果 */
 .start-btn {
   width: 520rpx;
@@ -189,6 +215,26 @@ page {
 
 .start-btn:active::after {
   left: 100%;
+}
+
+/* 次主按钮 - 实心但更克制 */
+.secondary-btn {
+  width: 520rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  background: linear-gradient(135deg, rgba(143, 122, 102, 0.22) 0%, rgba(187, 173, 160, 0.18) 100%);
+  color: #776e65;
+  font-size: 32rpx;
+  font-weight: 700;
+  border-radius: 50rpx;
+  border: 2rpx solid rgba(187, 173, 160, 0.45);
+  margin-bottom: 26rpx;
+  transition: all 0.3s ease;
+}
+
+.secondary-btn:active {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, rgba(143, 122, 102, 0.28) 0%, rgba(187, 173, 160, 0.24) 100%);
 }
 
 /* 排行按钮 - 次要按钮 */
