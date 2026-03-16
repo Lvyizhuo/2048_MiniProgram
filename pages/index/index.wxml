@@ -34,7 +34,7 @@
   </view>
 
   <!-- 棋盘区域 -->
-  <view class="game-board" bindtouchstart="touchStart" bindtouchend="touchEnd">
+  <view class="game-board" bindtouchstart="touchStart" bindtouchend="touchEnd" bindtouchcancel="touchCancel">
     <view class="grid-container">
       <!-- 背景网格 -->
       <view class="grid-background">
@@ -104,13 +104,15 @@
     <view class="modal-mask" bindtap="closeMenu"></view>
     <view class="modal-content menu-content">
       <view class="modal-title">菜单</view>
-      <view class="menu-list">
+      <scroll-view class="menu-list" scroll-y="true">
         <view class="menu-item" bindtap="continueGameFromMenu"><text class="menu-text">继续游戏</text></view>
         <view class="menu-item" bindtap="newGame"><text class="menu-text">新游戏</text></view>
         <view class="menu-item" bindtap="toggleSound"><text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text></view>
+        <view class="menu-item" bindtap="toggleVibration"><text class="menu-text">{{vibrationEnabled ? '关闭震动' : '开启震动'}}</text></view>
         <view class="menu-item" bindtap="showTutorialFromMenu"><text class="menu-text">新手教程</text></view>
         <view class="menu-item" bindtap="goToMain"><text class="menu-text">返回主页</text></view>
-      </view>
+      </scroll-view>
+      <button class="modal-btn btn-secondary" open-type="share">分享给好友</button>
       <button class="modal-btn btn-secondary" bindtap="closeMenu">关闭</button>
     </view>
   </view>

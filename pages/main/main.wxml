@@ -21,7 +21,13 @@
       <view class="best-score-value">{{bestScore}}</view>
     </view>
 
-    <button class="start-btn" bindtap="startNewGame">开始游戏</button>
+    <view class="last-score" wx:if="{{hasSavedGame}}">
+      <view class="last-score-label">上次得分</view>
+      <view class="last-score-value">{{savedScore}}</view>
+    </view>
+
+    <button class="start-btn" bindtap="continueGame">{{hasSavedGame ? '继续游戏' : '开始游戏'}}</button>
+    <button class="secondary-btn" bindtap="startFreshGame" wx:if="{{hasSavedGame}}">新游戏</button>
     <button class="rank-btn" bindtap="showRankings">排行榜</button>
   </view>
 </view>
