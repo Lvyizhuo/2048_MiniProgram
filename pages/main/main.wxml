@@ -3,8 +3,22 @@
   <view class="decoration decoration-top"></view>
   <view class="decoration decoration-bottom"></view>
 
+  <!-- 浮动粒子 -->
+  <view class="particles">
+    <view class="particle p1"></view>
+    <view class="particle p2"></view>
+    <view class="particle p3"></view>
+    <view class="particle p4"></view>
+    <view class="particle p5"></view>
+    <view class="particle p6"></view>
+    <view class="particle p7"></view>
+    <view class="particle p8"></view>
+    <view class="particle p9"></view>
+    <view class="particle p10"></view>
+  </view>
+
   <!-- Logo区域 -->
-  <view class="logo-section">
+  <view class="logo-section fade-in" style="animation-delay: 0.06s;">
     <view class="logo-container">
       <view class="tile tile-2 number-tile">2048</view>
       <view class="tile-0"></view>
@@ -14,7 +28,7 @@
   </view>
 
   <!-- 按钮区域 -->
-  <view class="button-section">
+  <view class="button-section fade-in" style="animation-delay: 0.18s;">
     <!-- 最高分显示 -->
     <view class="best-score" wx:if="{{bestScore > 0}}">
       <view class="best-score-label">历史最高分</view>
@@ -29,5 +43,10 @@
     <button class="start-btn" bindtap="continueGame">{{hasSavedGame ? '继续游戏' : '开始游戏'}}</button>
     <button class="secondary-btn" bindtap="startFreshGame" wx:if="{{hasSavedGame}}">新游戏</button>
     <button class="rank-btn" bindtap="showRankings">排行榜</button>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="footer fade-in" style="animation-delay: 0.32s;">
+    <text class="version">版本 {{versionText}}</text>
   </view>
 </view>

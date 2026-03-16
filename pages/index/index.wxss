@@ -5,10 +5,15 @@
   height: 100vh;
   background: linear-gradient(135deg, #faf8ef 0%, #f4f1e8 100%);
   padding: 20rpx;
-  padding-top: calc(20rpx + env(safe-area-inset-top));
+  padding-top: 20rpx;
+  padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.nav-spacer {
+  flex: 0 0 auto;
 }
 
 /* 顶部信息区 - 优化布局 */
@@ -66,6 +71,8 @@
   text-align: center;
   min-width: 100rpx;
   box-shadow: 0 4rpx 12rpx rgba(187, 173, 160, 0.3);
+  position: relative;
+  overflow: visible;
 }
 
 .score-label {
@@ -80,6 +87,40 @@
   font-size: 36rpx;
   font-weight: 700;
   color: #ffffff;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+/* 分数跳动动画 */
+.score-pop {
+  animation: scorePop 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes scorePop {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  40%  { transform: translate3d(0, 0, 0) scale(1.18); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* +XX 飘字 */
+.score-plus {
+  position: absolute;
+  right: 16rpx;
+  top: 10rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  animation: scorePlusFloat 620ms ease-out both;
+}
+
+@keyframes scorePlusFloat {
+  0%   { opacity: 0; transform: translate3d(0, 12rpx, 0) scale(0.9); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, -34rpx, 0) scale(1.08); }
 }
 
 /* 头部按钮 - 现代化设计 */
@@ -163,7 +204,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8rpx 32rpx rgba(187, 173, 160, 0.3);
+  box-shadow: inset 0 0 26rpx rgba(0, 0, 0, 0.08),
+              0 8rpx 32rpx rgba(187, 173, 160, 0.3);
 }
 
 .grid-row {
@@ -219,9 +261,21 @@
   font-size: 56rpx;
   font-weight: bold;
   position: relative;
-  transition: transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* 原版2048手感：短促、顺滑、轻微ease-in-out */
+  transition: transform 110ms ease-in-out,
+              opacity 100ms ease-out;
   box-shadow: inset 0 -4rpx 10rpx rgba(0,0,0,0.1);
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.tile.no-transition {
+  transition: none !important;
+}
+
+.tile text {
+  position: relative;
+  z-index: 1;
 }
 
 .tile:last-child {
@@ -328,6 +382,35 @@
   box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5);
 }
 
+/* 128+ 呼吸光效（不占用transform，避免与滑动冲突） */
+.tile-128::after,
+.tile-256::after,
+.tile-512::after,
+.tile-1024::after,
+.tile-2048::after,
+.tile-4096::after,
+.tile-8192::after {
+  content: '';
+  position: absolute;
+  inset: -10rpx;
+  border-radius: 16rpx;
+  background: radial-gradient(circle at 30% 30%,
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(243, 215, 116, 0.24) 35%,
+    rgba(243, 215, 116, 0) 70%);
+  opacity: 0.55;
+  filter: blur(10rpx);
+  pointer-events: none;
+  will-change: opacity, transform;
+  transform: translate3d(0, 0, 0) scale(0.98);
+  animation: glowBreath 2.6s ease-in-out infinite;
+}
+
+@keyframes glowBreath {
+  0%, 100% { opacity: 0.42; transform: translate3d(0, 0, 0) scale(0.98); }
+  50%      { opacity: 0.78; transform: translate3d(0, 0, 0) scale(1.03); }
+}
+
 /* 更大的数字 */
 .tile-4096,
 .tile-8192 {
@@ -338,8 +421,9 @@
 
 /* ==================== 动画效果系统 ==================== */
 
+/* 新方块生成：超调弹出，有生命力 */
 .tile-new {
-  animation: tileNew 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: tileNew 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes tileNew {
@@ -347,34 +431,39 @@
     transform: scale(0);
     opacity: 0;
   }
+  55% {
+    transform: scale(1.13);
+    opacity: 1;
+  }
   100% {
     transform: scale(1);
     opacity: 1;
   }
 }
 
+/* 合并动画：有重量感的三段回弹 */
 .tile-merged {
-  animation: tileMerged 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: tileMerged 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   z-index: 10;
 }
 
 @keyframes tileMerged {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.15);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.2); }
+  65%  { transform: scale(0.93); }
+  100% { transform: scale(1); }
 }
 
+/* 被合并方块消失：平滑缩小淡出，自然感 */
 .tile-merge-disappear {
-  opacity: 0 !important;
-  visibility: hidden;
+  animation: tileMergeDisappear 140ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
   pointer-events: none;
   z-index: 5;
+}
+
+@keyframes tileMergeDisappear {
+  0%   { opacity: 0.85; transform: scale(0.95); }
+  100% { opacity: 0;    transform: scale(0.5); }
 }
 
 /* Banner广告位 */
@@ -433,6 +522,81 @@
   text-align: center;
   z-index: 1001;
   box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.2);
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.modal.modal-show .modal-content {
+  animation: modalBounceIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.modal.modal-closing {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal.modal-closing .modal-content {
+  animation: modalBounceOut 170ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
+@keyframes modalBounceIn {
+  0%   { opacity: 0; transform: translate3d(0, 10rpx, 0) scale(0.86); }
+  55%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1.06); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes modalBounceOut {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(0, 8rpx, 0) scale(0.9); }
+}
+
+/* 游戏结束弹窗抖动 */
+.modal.modal-show .modal-content-gameover {
+  animation: modalGameOverIn 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes modalGameOverIn {
+  0%   { opacity: 0; transform: translate3d(0, 12rpx, 0) scale(0.86); }
+  55%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1.05); }
+  72%  { transform: translate3d(-10rpx, 0, 0) scale(1); }
+  82%  { transform: translate3d(8rpx, 0, 0) scale(1); }
+  92%  { transform: translate3d(-6rpx, 0, 0) scale(1); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* 胜利弹窗金色光芒 */
+.modal-content-win {
+  overflow: hidden;
+}
+
+.win-rays {
+  position: absolute;
+  inset: -220rpx;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 215, 0, 0) 0,
+    rgba(255, 215, 0, 0) 26rpx,
+    rgba(255, 215, 0, 0.22) 26rpx,
+    rgba(255, 215, 0, 0.22) 42rpx
+  );
+  opacity: 0.22;
+  filter: blur(2rpx);
+  transform: translate3d(0, 0, 0) rotate(12deg);
+  will-change: transform;
+  animation: raysSpin 4.2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes raysSpin {
+  0%   { transform: translate3d(0, 0, 0) rotate(12deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(372deg); }
+}
+
+.modal-content-win .modal-title,
+.modal-content-win .modal-text,
+.modal-content-win .modal-buttons {
+  position: relative;
+  z-index: 1;
 }
 
 .modal-title {
@@ -526,6 +690,10 @@
   text-align: center;
   box-shadow: 0 4rpx 12rpx rgba(187, 173, 160, 0.2);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18rpx;
 }
 
 .menu-item:last-child {
@@ -535,6 +703,19 @@
 .menu-item:active {
   transform: scale(0.98);
   box-shadow: 0 2rpx 6rpx rgba(187, 173, 160, 0.15);
+}
+
+.menu-icon {
+  width: 44rpx;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  transform: translate3d(0, 0, 0);
+}
+
+.menu-icon.muted {
+  opacity: 0.55;
 }
 
 .menu-text {
@@ -598,12 +779,13 @@
 /* 消除模式提示 - 现代化设计 */
 .eliminate-tip {
   position: fixed;
-  top: 50%;
+  top: calc(constant(safe-area-inset-top) + 22rpx);
+  top: calc(env(safe-area-inset-top) + 22rpx);
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -18rpx);
   background: linear-gradient(135deg, rgba(246, 94, 59, 0.95) 0%, rgba(242, 177, 121, 0.95) 100%);
   color: #FFFFFF;
-  padding: 40rpx 60rpx;
+  padding: 26rpx 52rpx;
   border-radius: 24rpx;
   font-size: 28rpx;
   z-index: 999;
@@ -619,7 +801,7 @@
 .eliminate-tip.show {
   opacity: 1;
   visibility: visible;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, 0);
 }
 
 .eliminate-tip text {

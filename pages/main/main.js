@@ -2,7 +2,8 @@ Page({
   data: {
     bestScore: 0,
     hasSavedGame: false,
-    savedScore: 0
+    savedScore: 0,
+    versionText: ''
   },
 
   onLoad() {
@@ -10,12 +11,37 @@ Page({
     this.loadBestScore();
     // 加载是否存在未结束的对局
     this.loadSavedGameInfo();
+    // 底部版本信息
+    this.loadVersionInfo();
   },
 
   onShow() {
     // 返回主页时刷新一次，确保分数/存档状态最新
     this.loadBestScore();
     this.loadSavedGameInfo();
+  },
+
+  /**
+   * 加载版本信息（发布版显示版本号，开发/体验版显示环境）
+   */
+  loadVersionInfo() {
+    let version = '';
+    let envVersion = '';
+    try {
+      const info = wx.getAccountInfoSync ? wx.getAccountInfoSync() : null;
+      version = (info && info.miniProgram && info.miniProgram.version) ? info.miniProgram.version : '';
+      envVersion = (info && info.miniProgram && info.miniProgram.envVersion) ? info.miniProgram.envVersion : '';
+    } catch (e) {
+      // ignore
+    }
+
+    const envLabel = envVersion && envVersion !== 'release' ? envVersion : '';
+    const versionLabel = version ? `v${version}` : 'v0.0.0';
+    const text = envLabel ? `${versionLabel} (${envLabel})` : versionLabel;
+
+    this.setData({
+      versionText: text
+    });
   },
 
   /**

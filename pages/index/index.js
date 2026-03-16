@@ -6,18 +6,27 @@ Page({
     grid: [],
     score: 0,
     bestScore: 0,
+    scorePop: false,
+    scorePlus: null,
     gameOver: false,
+    navSpacerPx: 0,
     showGameOverModal: false,
+    gameOverModalClosing: false,
     showWinModal: false,
+    winModalClosing: false,
     showMenuModal: false,
+    menuModalClosing: false,
     showTutorialModal: false,
+    tutorialModalClosing: false,
     tutorialStep: 0,
     soundEnabled: true,
     tileAnimations: {}, // 存储方块动画状态
     tileTransforms: {}, // 存储方块变换样式
+    disableTileTransition: false, // 用于实现“原版2048”滑动：先瞬移到旧位置，再平滑滑到新位置
     tilesToDisappear: {}, // 标记需要消失的方块（被合并的源方块）
     hiddenNewTiles: {}, // 标记需要隐藏的新方块（避免闪烁）
     eliminateMode: false, // 消除模式开关
+    eliminateTipVisible: false, // 顶部提示（短暂展示）
     vibrationEnabled: true // 震动反馈开关
   },
 
@@ -26,8 +35,12 @@ Page({
   touchStartX: 0,
   touchStartY: 0,
   isAnimating: false,
+  scorePopTimer: null,
+  scorePlusTimer: null,
+  eliminateTipTimer: null,
 
   onLoad() {
+    this.initNavMetrics();
     // 初始化音效管理器
     this.audioManager = new AudioManager();
     
@@ -56,6 +69,59 @@ Page({
     this.checkFirstTime();
   },
 
+  initNavMetrics() {
+    let statusBarHeight = 0;
+    let menuButtonRect = null;
+    try {
+      const sys = wx.getSystemInfoSync ? wx.getSystemInfoSync() : null;
+      statusBarHeight = (sys && sys.statusBarHeight) ? sys.statusBarHeight : 0;
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      menuButtonRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+    } catch (e) {
+      // ignore
+    }
+
+    // 自定义导航栏页面：让内容从胶囊按钮下方开始渲染，避免 iPhone 15 Pro Max 动态岛/刘海重叠
+    const navSpacerPx = menuButtonRect && menuButtonRect.bottom
+      ? Math.ceil(menuButtonRect.bottom + 8)
+      : Math.ceil(statusBarHeight + 52);
+
+    this.setData({
+      navSpacerPx: Math.max(0, navSpacerPx)
+    });
+  },
+
+  isAnyModalVisible() {
+    return !!(
+      this.data.showMenuModal ||
+      this.data.showTutorialModal ||
+      this.data.showWinModal ||
+      this.data.showGameOverModal ||
+      this.data.menuModalClosing ||
+      this.data.tutorialModalClosing ||
+      this.data.winModalClosing ||
+      this.data.gameOverModalClosing
+    );
+  },
+
+  closeModalWithAnimation(showKey, closingKey, durationMs = 170, afterClose) {
+    if (!this.data[showKey] || this.data[closingKey]) {
+      return;
+    }
+    this.setData({ [closingKey]: true });
+    setTimeout(() => {
+      this.setData({ [showKey]: false, [closingKey]: false }, () => {
+        if (typeof afterClose === 'function') {
+          afterClose();
+        }
+      });
+    }, durationMs);
+  },
+
   onReady() {
     // 首次渲染后测量棋盘步长，用于更精准的滑动动画（适配不同屏幕）
     this.measureCellStep();
@@ -65,6 +131,18 @@ Page({
     // 页面卸载时销毁音效实例
     if (this.audioManager) {
       this.audioManager.destroy();
+    }
+    if (this.scorePopTimer) {
+      clearTimeout(this.scorePopTimer);
+      this.scorePopTimer = null;
+    }
+    if (this.scorePlusTimer) {
+      clearTimeout(this.scorePlusTimer);
+      this.scorePlusTimer = null;
+    }
+    if (this.eliminateTipTimer) {
+      clearTimeout(this.eliminateTipTimer);
+      this.eliminateTipTimer = null;
     }
     // 页面卸载时保存游戏状态
     this.saveGame();
@@ -183,6 +261,7 @@ Page({
   showTutorial() {
     this.setData({
       showTutorialModal: true,
+      tutorialModalClosing: false,
       tutorialStep: 0
     });
   },
@@ -191,16 +270,16 @@ Page({
    * 关闭新手教程
    */
   closeTutorial() {
-    this.setData({
-      showTutorialModal: false,
-      tutorialStep: 0
-    });
     // 标记已显示过教程
     try {
       wx.setStorageSync('hasShownTutorial', true);
     } catch (e) {
       console.error('保存教程状态失败', e);
     }
+
+    this.closeModalWithAnimation('showTutorialModal', 'tutorialModalClosing', 170, () => {
+      this.setData({ tutorialStep: 0 });
+    });
   },
   
   /**
@@ -252,7 +331,7 @@ Page({
    * 触摸结束
    */
   touchEnd(e) {
-    if (this.isAnimating || this.data.showMenuModal || this.data.showTutorialModal || this.data.showWinModal || this.data.showGameOverModal) {
+    if (this.isAnimating || this.isAnyModalVisible()) {
       return;
     }
     if (this.data.gameOver) {
@@ -272,8 +351,13 @@ Page({
     if (this.data.eliminateMode) {
       if (Math.abs(deltaX) >= minSwipeDistance || Math.abs(deltaY) >= minSwipeDistance) {
         this.setData({
-          eliminateMode: false
+          eliminateMode: false,
+          eliminateTipVisible: false
         });
+        if (this.eliminateTipTimer) {
+          clearTimeout(this.eliminateTipTimer);
+          this.eliminateTipTimer = null;
+        }
       }
       // 消除模式下不处理滑动移动
       return;
@@ -307,7 +391,7 @@ Page({
    * 处理移动
    */
   handleMove(direction) {
-    if (this.isAnimating || this.data.showMenuModal || this.data.showTutorialModal || this.data.showWinModal || this.data.showGameOverModal) {
+    if (this.isAnimating || this.isAnyModalVisible()) {
       return;
     }
     // 保存移动前的grid状态用于动画
@@ -330,29 +414,28 @@ Page({
       this.executeAnimationsInSequence(result, oldGridData).finally(() => {
         this.isAnimating = false;
       });
-      
+
+      // 动画总时长：滑动(150ms) + 合并(160ms) + 新方块(220ms) + 缓冲(50ms)
+      const TOTAL_ANIM_MS = 110 + 160 + 220 + 50;
+
       // 处理胜利（在动画完成后）
       if (result.won) {
         setTimeout(() => {
-          this.setData({
-            showWinModal: true
-          });
-        }, 180 + 200 + 250 + 50); // 滑动(180ms) + 合并(200ms) + 新方块(250ms) + 延迟
+          this.setData({ showWinModal: true, winModalClosing: false });
+        }, TOTAL_ANIM_MS);
       }
 
       // 处理游戏结束（在动画完成后）
       if (result.gameOver) {
         setTimeout(() => {
-          this.setData({
-            showGameOverModal: true
-          });
-        }, 180 + 200 + 250 + 50);
+          this.setData({ showGameOverModal: true, gameOverModalClosing: false });
+        }, TOTAL_ANIM_MS);
       }
 
       // 保存游戏状态（在动画完成后）
       setTimeout(() => {
         this.saveGame();
-      }, 180 + 200 + 250 + 50);
+      }, TOTAL_ANIM_MS);
     }
   },
 
@@ -371,7 +454,7 @@ Page({
 
     // 第一步：应用滑动动画（180ms）
     // 传入新方块信息，在滑动动画时暂时隐藏它
-    return this.applySlideAnimations(moveMapping, oldGridData, result.newTile).then(() => {
+    return this.applySlideAnimations(moveMapping, oldGridData, result.newTile, result.scoreIncrease).then(() => {
       // 滑动动画完成后，执行合并动画（如果有合并）
       // 传入新方块信息，用于排除新方块位置的合并动画
       if (moveMapping.merges && moveMapping.merges.length > 0) {
@@ -390,13 +473,15 @@ Page({
    * 优化：使用更好的缓动函数，减少延迟
    * 返回Promise，在动画完成后resolve
    */
-  applySlideAnimations(moveMapping, oldGridData, newTile) {
+  applySlideAnimations(moveMapping, oldGridData, newTile, scoreIncrease) {
     return new Promise((resolve) => {
+      const SLIDE_MS = 110;
       // 先更新UI到新状态
       const newGrid = this.game.grid;
       const newScore = this.game.score;
       const newBestScore = this.game.bestScore;
       const newGameOver = this.game.gameOver;
+      const scoreDelta = parseInt(scoreIncrease, 10) || 0;
       
       // 如果有新方块，暂时隐藏它
       const hiddenTiles = {};
@@ -418,61 +503,73 @@ Page({
           });
         });
       }
-      
+
+      // 计算滑动偏移：先把“新位置的方块”瞬移回旧位置（不带transition），再清空transform触发平滑滑动
+      const transforms = {};
+      const cellStep = this.cellStepPx || 170;
+      const unit = this.cellStepPx ? 'px' : 'rpx';
+
+      if (moveMapping.moves) {
+        moveMapping.moves.forEach(move => {
+          const key = `${move.to.row}-${move.to.col}`;
+          const deltaX = (move.from.col - move.to.col) * cellStep;
+          const deltaY = (move.from.row - move.to.row) * cellStep;
+          transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
+        });
+      }
+
+      if (moveMapping.merges && moveMapping.merges.length > 0) {
+        moveMapping.merges.forEach(merge => {
+          if (merge.from.length > 0) {
+            const source = merge.from[0];
+            const key = `${merge.to.row}-${merge.to.col}`;
+            const deltaX = (source.col - merge.to.col) * cellStep;
+            const deltaY = (source.row - merge.to.row) * cellStep;
+            transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
+          }
+        });
+      }
+
       this.setData({
         grid: newGrid,
         score: newScore,
         bestScore: newBestScore,
         gameOver: newGameOver,
         hiddenNewTiles: hiddenTiles, // 标记需要隐藏的新方块
-        tilesToDisappear: disappearingTiles // 标记被合并的方块
+        tilesToDisappear: disappearingTiles, // 标记被合并的方块
+        scorePop: scoreDelta > 0,
+        scorePlus: scoreDelta > 0 ? { value: scoreDelta, id: Date.now() } : null,
+        disableTileTransition: true,
+        tileTransforms: transforms
       }, () => {
-        // 等待DOM更新后，设置transform偏移
+        if (scoreDelta > 0) {
+          if (this.scorePopTimer) {
+            clearTimeout(this.scorePopTimer);
+          }
+          this.scorePopTimer = setTimeout(() => {
+            this.setData({ scorePop: false });
+          }, 240);
+
+          const plusId = this.data.scorePlus ? this.data.scorePlus.id : null;
+          if (this.scorePlusTimer) {
+            clearTimeout(this.scorePlusTimer);
+          }
+          this.scorePlusTimer = setTimeout(() => {
+            if (plusId && this.data.scorePlus && this.data.scorePlus.id === plusId) {
+              this.setData({ scorePlus: null });
+            }
+          }, 720);
+        }
+
+        // 关键：第1帧先“无transition”完成位置回溯；第2帧打开transition；第3帧清空transform触发滑动
         setTimeout(() => {
-          const transforms = {};
-          const cellStep = this.cellStepPx || 170;
-          const unit = this.cellStepPx ? 'px' : 'rpx';
-          
-          // 处理普通移动：在新位置设置transform，从旧位置移动过来
-          if (moveMapping.moves) {
-            moveMapping.moves.forEach(move => {
-              const key = `${move.to.row}-${move.to.col}`;
-              const deltaX = (move.from.col - move.to.col) * cellStep;
-              const deltaY = (move.from.row - move.to.row) * cellStep;
-              transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
-            });
-          }
-          
-          // 处理合并：合并目标方块也需要滑动（从第一个源位置）
-          if (moveMapping.merges && moveMapping.merges.length > 0) {
-            moveMapping.merges.forEach(merge => {
-              if (merge.from.length > 0) {
-                const source = merge.from[0];
-                const key = `${merge.to.row}-${merge.to.col}`;
-                const deltaX = (source.col - merge.to.col) * cellStep;
-                const deltaY = (source.row - merge.to.row) * cellStep;
-                transforms[key] = `translate(${deltaX}${unit}, ${deltaY}${unit})`;
-              }
-            });
-          }
-          
-          // 设置transform偏移
-          this.setData({
-            tileTransforms: transforms
-          }, () => {
-            // 立即清除transform，触发CSS transition平滑移动
-            // 使用requestAnimationFrame确保在下一帧执行
+          this.setData({ disableTileTransition: false }, () => {
             setTimeout(() => {
-              this.setData({
-                tileTransforms: {}
-              });
-              // 等待动画完成（180ms）
-              setTimeout(() => {
-                resolve();
-              }, 180); // 180ms滑动动画
-            }, 16); // 约一帧的时间
+              this.setData({ tileTransforms: {} });
+              setTimeout(resolve, SLIDE_MS);
+            }, 16);
           });
-        }, 16); // 约一帧的时间
+        }, 16);
       });
     });
   },
@@ -519,7 +616,7 @@ Page({
         tileAnimations: animations
       }, () => {
         setTimeout(() => {
-          // 清理合并动画与消失标记（让opacity过渡生效）
+          // 清理合并动画类名（重置供下次使用）
           moveMapping.merges.forEach(merge => {
             const key = `${merge.to.row}-${merge.to.col}`;
             if (animations[key] === 'tile-merged') {
@@ -528,10 +625,10 @@ Page({
           });
           this.setData({
             tileAnimations: animations,
-            tilesToDisappear: {}
+            tilesToDisappear: {} // 消失动画(140ms)已完成，清除标记
           });
           resolve();
-        }, 200);
+        }, 160); // 160ms：覆盖合并(200ms)和消失(140ms)动画
       });
     });
   },
@@ -562,17 +659,17 @@ Page({
         hiddenNewTiles: hiddenTiles,
         tileAnimations: animations
       }, () => {
-        // 在下一帧确保DOM已更新后再开始动画
+        // 32ms确保DOM已渲染，动画类名稳定挂载后再等待完成
         setTimeout(() => {
-          // 移除动画类名（250ms后）
+          // 移除动画类名，让下次动画能重新触发
           setTimeout(() => {
             animations[key] = '';
             this.setData({
               tileAnimations: animations
             });
             resolve();
-          }, 250); // 250ms新方块生成动画
-        }, 16); // 约一帧的时间
+          }, 220); // 220ms新方块生成动画
+        }, 32); // 2帧，确保animation已稳定挂载
       });
     });
   },
@@ -601,13 +698,52 @@ Page({
 
   newGameForce() {
     this.game.init();
+    const hasModal =
+      this.data.showGameOverModal ||
+      this.data.showWinModal ||
+      this.data.showMenuModal ||
+      this.data.showTutorialModal;
+
+    if (hasModal) {
+      this.setData({
+        gameOverModalClosing: !!this.data.showGameOverModal,
+        winModalClosing: !!this.data.showWinModal,
+        menuModalClosing: !!this.data.showMenuModal,
+        tutorialModalClosing: !!this.data.showTutorialModal
+      });
+
+      setTimeout(() => {
+        this.setData({
+          showGameOverModal: false,
+          showWinModal: false,
+          showMenuModal: false,
+          showTutorialModal: false,
+          gameOverModalClosing: false,
+          winModalClosing: false,
+          menuModalClosing: false,
+          tutorialModalClosing: false,
+          tutorialStep: 0,
+          tileAnimations: {},
+          tileTransforms: {},
+          hiddenNewTiles: {},
+          tilesToDisappear: {}
+        });
+        this.updateUI();
+        this.saveGame();
+      }, 180);
+      return;
+    }
+
     this.setData({
       showGameOverModal: false,
       showWinModal: false,
       showMenuModal: false,
+      showTutorialModal: false,
+      tutorialStep: 0,
       tileAnimations: {},
       tileTransforms: {},
-      hiddenNewTiles: {}
+      hiddenNewTiles: {},
+      tilesToDisappear: {}
     });
     this.updateUI();
     this.saveGame();
@@ -620,8 +756,13 @@ Page({
     if (this.data.eliminateMode) {
       // 如果处于消除模式，先退出消除模式
       this.setData({
-        eliminateMode: false
+        eliminateMode: false,
+        eliminateTipVisible: false
       });
+      if (this.eliminateTipTimer) {
+        clearTimeout(this.eliminateTipTimer);
+        this.eliminateTipTimer = null;
+      }
       return;
     }
     
@@ -660,16 +801,24 @@ Page({
   toggleEliminateMode() {
     const newMode = !this.data.eliminateMode;
     this.setData({
-      eliminateMode: newMode
+      eliminateMode: newMode,
+      eliminateTipVisible: newMode
     });
-    
-    if (newMode) {
-      wx.showToast({
-        title: '消除模式已开启',
-        icon: 'none',
-        duration: 1500
-      });
+
+    if (this.eliminateTipTimer) {
+      clearTimeout(this.eliminateTipTimer);
+      this.eliminateTipTimer = null;
     }
+
+    if (newMode) {
+      this.eliminateTipTimer = setTimeout(() => {
+        this.setData({ eliminateTipVisible: false });
+        this.eliminateTipTimer = null;
+      }, 2200);
+      return;
+    }
+
+    this.setData({ eliminateTipVisible: false });
   },
 
   /**
@@ -726,8 +875,13 @@ Page({
    * 显示/隐藏菜单
    */
   toggleMenu() {
+    if (this.data.showMenuModal) {
+      this.closeMenu();
+      return;
+    }
     this.setData({
-      showMenuModal: !this.data.showMenuModal
+      showMenuModal: true,
+      menuModalClosing: false
     });
   },
   
@@ -735,9 +889,7 @@ Page({
    * 关闭菜单
    */
   closeMenu() {
-    this.setData({
-      showMenuModal: false
-    });
+    this.closeModalWithAnimation('showMenuModal', 'menuModalClosing');
   },
   
   /**
@@ -788,9 +940,12 @@ Page({
    * 显示新手指引（从菜单）
    */
   showTutorialFromMenu() {
-    this.setData({
-      showMenuModal: false
-    });
+    if (this.data.showMenuModal) {
+      this.closeModalWithAnimation('showMenuModal', 'menuModalClosing', 170, () => {
+        this.showTutorial();
+      });
+      return;
+    }
     this.showTutorial();
   },
   
@@ -816,18 +971,14 @@ Page({
    */
   continueGame() {
     this.game.continueGame();
-    this.setData({
-      showWinModal: false
-    });
+    this.closeModalWithAnimation('showWinModal', 'winModalClosing');
   },
 
   /**
    * 关闭游戏结束弹窗
    */
   closeGameOverModal() {
-    this.setData({
-      showGameOverModal: false
-    });
+    this.closeModalWithAnimation('showGameOverModal', 'gameOverModalClosing');
   },
 
   /**

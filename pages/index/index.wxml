@@ -1,4 +1,7 @@
 <view class="container" catchtouchmove="preventMove">
+  <!-- 自定义导航栏占位：避免内容与刘海/胶囊重叠 -->
+  <view class="nav-spacer" style="height: {{navSpacerPx}}px;"></view>
+
   <!-- 顶部信息区 -->
   <view class="header">
     <view class="header-top">
@@ -6,7 +9,8 @@
       <view class="scores">
         <view class="score-item">
           <text class="score-label">SCORE</text>
-          <text class="score-value">{{score}}</text>
+          <text class="score-value {{scorePop ? 'score-pop' : ''}}">{{score}}</text>
+          <view class="score-plus" wx:if="{{scorePlus && scorePlus.value > 0}}">+{{scorePlus.value}}</view>
         </view>
         <view class="score-item">
           <text class="score-label">BEST</text>
@@ -54,7 +58,7 @@
             data-row="{{rowIndex}}"
             data-col="{{colIndex}}"
             bindtap="eliminateTile"
-            class="tile {{cell ? ('tile-' + cell) : 'tile-empty'}} {{tileAnimations[rowIndex + '-' + colIndex] ? tileAnimations[rowIndex + '-' + colIndex] : ''}} {{tilesToDisappear[rowIndex + '-' + colIndex] ? 'tile-merge-disappear' : ''}} {{hiddenNewTiles[rowIndex + '-' + colIndex] ? 'tile-hidden' : ''}} {{(eliminateMode && cell) ? 'tile-selectable' : ''}}"
+            class="tile {{disableTileTransition ? 'no-transition' : ''}} {{cell ? ('tile-' + cell) : 'tile-empty'}} {{tileAnimations[rowIndex + '-' + colIndex] ? tileAnimations[rowIndex + '-' + colIndex] : ''}} {{tilesToDisappear[rowIndex + '-' + colIndex] ? 'tile-merge-disappear' : ''}} {{hiddenNewTiles[rowIndex + '-' + colIndex] ? 'tile-hidden' : ''}} {{(eliminateMode && cell) ? 'tile-selectable' : ''}}"
             style="{{tileTransforms[rowIndex + '-' + colIndex] ? ('transform:' + tileTransforms[rowIndex + '-' + colIndex] + ';') : ''}}"
           >
             <text wx:if="{{cell}}">{{cell}}</text>
@@ -65,16 +69,16 @@
   </view>
 
   <!-- 消除模式提示 -->
-  <view class="eliminate-tip {{eliminateMode ? 'show' : ''}}">
+  <view class="eliminate-tip {{eliminateTipVisible ? 'show' : ''}}">
     <text>消除模式已开启</text>
     <text>点击方块进行消除</text>
     <text>滑动即可退出</text>
   </view>
 
   <!-- 游戏结束弹窗 -->
-  <view class="modal {{showGameOverModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+  <view class="modal {{showGameOverModal ? 'modal-show' : ''}} {{gameOverModalClosing ? 'modal-closing' : ''}}" catchtouchmove="preventMove">
     <view class="modal-mask" bindtap="closeGameOverModal"></view>
-    <view class="modal-content">
+    <view class="modal-content modal-content-gameover">
       <view class="modal-title">游戏结束</view>
       <view class="modal-text">当前得分</view>
       <view class="modal-score">{{score}}</view>
@@ -87,9 +91,10 @@
   </view>
 
   <!-- 胜利弹窗 -->
-  <view class="modal {{showWinModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+  <view class="modal {{showWinModal ? 'modal-show' : ''}} {{winModalClosing ? 'modal-closing' : ''}}" catchtouchmove="preventMove">
     <view class="modal-mask" bindtap="continueGame"></view>
-    <view class="modal-content">
+    <view class="modal-content modal-content-win">
+      <view class="win-rays"></view>
       <view class="modal-title modal-title-win">你赢了！</view>
       <view class="modal-text">继续挑战更高分？</view>
       <view class="modal-buttons">
@@ -100,17 +105,35 @@
   </view>
 
   <!-- 菜单弹窗 -->
-  <view class="modal {{showMenuModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+  <view class="modal {{showMenuModal ? 'modal-show' : ''}} {{menuModalClosing ? 'modal-closing' : ''}}" catchtouchmove="preventMove">
     <view class="modal-mask" bindtap="closeMenu"></view>
     <view class="modal-content menu-content">
       <view class="modal-title">菜单</view>
       <scroll-view class="menu-list" scroll-y="true">
-        <view class="menu-item" bindtap="continueGameFromMenu"><text class="menu-text">继续游戏</text></view>
-        <view class="menu-item" bindtap="newGame"><text class="menu-text">新游戏</text></view>
-        <view class="menu-item" bindtap="toggleSound"><text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text></view>
-        <view class="menu-item" bindtap="toggleVibration"><text class="menu-text">{{vibrationEnabled ? '关闭震动' : '开启震动'}}</text></view>
-        <view class="menu-item" bindtap="showTutorialFromMenu"><text class="menu-text">新手教程</text></view>
-        <view class="menu-item" bindtap="goToMain"><text class="menu-text">返回主页</text></view>
+        <view class="menu-item" bindtap="continueGameFromMenu">
+          <text class="menu-icon">▶</text>
+          <text class="menu-text">继续游戏</text>
+        </view>
+        <view class="menu-item" bindtap="newGame">
+          <text class="menu-icon">↻</text>
+          <text class="menu-text">新游戏</text>
+        </view>
+        <view class="menu-item" bindtap="toggleSound">
+          <text class="menu-icon {{soundEnabled ? '' : 'muted'}}">♬</text>
+          <text class="menu-text">{{soundEnabled ? '关闭音效' : '开启音效'}}</text>
+        </view>
+        <view class="menu-item" bindtap="toggleVibration">
+          <text class="menu-icon {{vibrationEnabled ? '' : 'muted'}}">≈</text>
+          <text class="menu-text">{{vibrationEnabled ? '关闭震动' : '开启震动'}}</text>
+        </view>
+        <view class="menu-item" bindtap="showTutorialFromMenu">
+          <text class="menu-icon">?</text>
+          <text class="menu-text">新手教程</text>
+        </view>
+        <view class="menu-item" bindtap="goToMain">
+          <text class="menu-icon">⌂</text>
+          <text class="menu-text">返回主页</text>
+        </view>
       </scroll-view>
       <button class="modal-btn btn-secondary" open-type="share">分享给好友</button>
       <button class="modal-btn btn-secondary" bindtap="closeMenu">关闭</button>
@@ -118,7 +141,7 @@
   </view>
 
   <!-- 新手教程弹窗 -->
-  <view class="modal {{showTutorialModal ? 'modal-show' : ''}}" catchtouchmove="preventMove">
+  <view class="modal {{showTutorialModal ? 'modal-show' : ''}} {{tutorialModalClosing ? 'modal-closing' : ''}}" catchtouchmove="preventMove">
     <view class="modal-mask" bindtap="closeTutorial"></view>
     <view class="modal-content tutorial-content">
       <view class="modal-title">新手教程</view>
